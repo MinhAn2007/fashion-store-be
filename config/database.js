@@ -1,40 +1,38 @@
-// config/database.js
-const { Sequelize } = require('sequelize');
-const fs = require("fs");
-const dotenv = require("dotenv");
+const knex = require('knex');
+const fs = require('fs');
+const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Đọc tệp CA certificate
-const caCert = fs.readFileSync("ca.pem");
+// Đọc tệp CA certificate (nếu cần cho SSL)
+const caCert = fs.existsSync('ca.pem') ? fs.readFileSync('ca.pem') : null;
 
 // Tạo pool kết nối MySQL có SSL
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 21588,
-  dialect: 'mysql',
-  logging: false,
-  dialectOptions: {
-    ssl: {
-      ca: caCert,
-    },
+const db = knex({
+  client: 'mysql2',
+  connection: {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 3306,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    ssl: caCert ? { ca: caCert } : false,
   },
   pool: {
-    max: 10,
     min: 0,
-    acquire: 30000,
-    idle: 10000,
-  }
+    max: 10,
+  },
 });
 
+// Kiểm tra kết nối
 const connectDB = async () => {
   try {
-    await sequelize.authenticate();
-    console.log("Đã kết nối tới MySQL bằng Sequelize");
+    await db.raw('SELECT 1+1 AS result');
+    console.log('Đã kết nối tới MySQL bằng Knex.js');
   } catch (err) {
-    console.error("Lỗi kết nối MySQL:", err.message);
+    console.error('Lỗi kết nối MySQL:', err.message);
     process.exit(1);
   }
 };
 
-module.exports = { sequelize, connectDB };
+module.exports = { db, connectDB };
