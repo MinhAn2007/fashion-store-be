@@ -1,41 +1,24 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+const express = require("express");
+const cors = require("cors");
+const expressListEndpoints = require("express-list-endpoints");
+const userRoutes = require("./routes/userRoute");
+const app = express();
+const PORT = process.env.PORT || 4000;
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+require("dotenv").config();
 
-var app = express();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
-
-app.use(logger('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+// Kết nối tới cơ sở dữ liệu
+require("./config/database").connectDB(); // Kết nối với cơ sở dữ liệu MongoDB
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+app.use('/api', userRoutes); // Kết nối route vào ứng dụng
+
+app.listen(PORT, () => {
+  // Khởi tạo server và lắng nghe trên PORT được xác định
+  console.log("Server Started in", PORT);
 });
-
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
+console.log(expressListEndpoints(app)); // In ra danh sách các endpoint mà server đang lắng nghe
 
 module.exports = app;
