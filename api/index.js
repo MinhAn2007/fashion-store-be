@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const expressListEndpoints = require("express-list-endpoints");
-const productRoutes = require("./routes/productRoutes");
+const productRoutes = require("../routes/productRoutes");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(cors());
 
 // Kết nối tới cơ sở dữ liệu
-require("./config/database").connectDB(); // Kết nối với cơ sở dữ liệu MongoDB
+require("../config/database").connectDB(); // Kết nối với cơ sở dữ liệu MongoDB
 
 app.use('/api', productRoutes); // Kết nối route vào ứng dụng
 
