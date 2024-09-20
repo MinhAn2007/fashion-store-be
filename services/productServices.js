@@ -31,7 +31,7 @@ const getProductById = async (productId) => {
     .leftJoin('products_skus as ps', 'p.id', 'ps.product_id')
     .leftJoin('product_attributes as size', 'ps.size_attribute_id', 'size.id')
     .leftJoin('product_attributes as color', 'ps.color_attribute_id', 'color.id')
-    .where('p.id', '1')
+    .where('p.id', productId)
     .andWhere('p.deleted_at', null)
     .groupBy('p.id', 'p.name', 'p.description', 'p.summary', 'p.cover')
     .limit(1);
