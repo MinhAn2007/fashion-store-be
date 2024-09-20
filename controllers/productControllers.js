@@ -1,18 +1,7 @@
-const { validationResult, query } = require('express-validator');
+const { validationResult } = require('express-validator');
 const productService = require('../services/productServices');
 
-// Validation middleware
-const validatePagination = [
-  query('limit')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Limit must be a positive integer'),
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer')
-];
-
+// Controller lấy sản phẩm với phân trang
 const getProductsWithPaging = async (req, res) => {
   // Validate query parameters
   const errors = validationResult(req);
@@ -38,7 +27,30 @@ const getProductsWithPaging = async (req, res) => {
   }
 };
 
+// Controller lấy chi tiết sản phẩm theo productID
+const getProductById = async (req, res) => {
+  // Validate product ID
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const productId = req.params.id;
+
+  try {
+    const product = await productService.getProductById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
-  validatePagination,
   getProductsWithPaging,
+  getProductById,
 };
