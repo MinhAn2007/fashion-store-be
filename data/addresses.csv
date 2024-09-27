@@ -1,0 +1,31 @@
+id,user_id,address_line,city,state,country,postal_code,phone_number,created_at,updated_at
+1,18,96 Main St,Jupiter,Arizona,Vietnam,845949,0903502125,2024-09-27,2024-09-27
+2,14,46 Main St,Port Lewport,West Virginia,Vietnam,921628,09010715246,2024-09-27,2024-09-27
+3,15,49 Main St,Birmingham,California,Vietnam,461473,0907320976,2024-09-27,2024-09-27
+4,14,8 Main St,Utica,Nevada,Vietnam,352564,0909227368,2024-09-27,2024-09-27
+5,1,67 Main St,Rodriguezberg,Iowa,Vietnam,808732,0902050674,2024-09-27,2024-09-27
+6,1,71 Main St,Lake Kierachester,South Carolina,Vietnam,361137,0905132382,2024-09-27,2024-09-27
+7,1,28 Main St,South Ettieborough,Maryland,Vietnam,923809,09010879569,2024-09-27,2024-09-27
+8,1,78 Main St,South Deon,South Dakota,Vietnam,779434,0904316483,2024-09-27,2024-09-27
+9,19,32 Main St,Maudeborough,Arkansas,Vietnam,817152,0903867457,2024-09-27,2024-09-27
+10,4,76 Main St,North Addisonborough,Connecticut,Vietnam,371899,0903295729,2024-09-27,2024-09-27
+11,4,97 Main St,New Josie,Maine,Vietnam,956316,0902905404,2024-09-27,2024-09-27
+12,7,13 Main St,Fort Dominic,Utah,Vietnam,451969,0907740172,2024-09-27,2024-09-27
+13,13,26 Main St,Fishers,California,Vietnam,677324,0905627608,2024-09-27,2024-09-27
+14,13,73 Main St,Ratkechester,Maryland,Vietnam,756925,0904847244,2024-09-27,2024-09-27
+15,15,60 Main St,South Aliviaville,Arkansas,Vietnam,802206,0901008849,2024-09-27,2024-09-27
+16,19,99 Main St,O'Connerview,Alabama,Vietnam,654018,0901923384,2024-09-27,2024-09-27
+17,3,94 Main St,Turlock,Maryland,Vietnam,791110,0907752987,2024-09-27,2024-09-27
+18,20,65 Main St,Wernerside,Missouri,Vietnam,267114,0906278539,2024-09-27,2024-09-27
+19,19,45 Main St,Andersonburgh,Nebraska,Vietnam,863665,0904664727,2024-09-27,2024-09-27
+20,12,15 Main St,Port Loushire,Hawaii,Vietnam,891257,0905418762,2024-09-27,2024-09-27
+21,9,43 Main St,St. George,Pennsylvania,Vietnam,132295,0907604932,2024-09-27,2024-09-27
+22,16,76 Main St,Santa Fe,South Carolina,Vietnam,191659,0902770838,2024-09-27,2024-09-27
+23,12,65 Main St,Colton,Maryland,Vietnam,693232,0901584783,2024-09-27,2024-09-27
+24,15,24 Main St,Toyside,Idaho,Vietnam,768748,0906598776,2024-09-27,2024-09-27
+25,18,97 Main St,North Yadiraborough,Arkansas,Vietnam,856759,0908355249,2024-09-27,2024-09-27
+26,20,25 Main St,South Makennabury,Louisiana,Vietnam,351020,09010747964,2024-09-27,2024-09-27
+27,19,5 Main St,North Gudrun,Wisconsin,Vietnam,500698,0906882216,2024-09-27,2024-09-27
+28,7,47 Main St,Temecula,Arizona,Vietnam,829964,0908449023,2024-09-27,2024-09-27
+29,5,2 Main St,East Mavisport,Arizona,Vietnam,460381,0903211890,2024-09-27,2024-09-27
+30,17,77 Main St,West Bonniechester,Maine,Vietnam,589372,0905858094,2024-09-27,2024-09-27
