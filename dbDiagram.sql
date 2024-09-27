@@ -57,7 +57,7 @@ CREATE TABLE Address (
 CREATE TABLE `Order` (
     id INT PRIMARY KEY AUTO_INCREMENT,
     customer_id INT,
-    status VARCHAR(255) NOT NULL,
+    status ENUM('Pending Confirmation', 'In Transit', 'Delivered', 'Returned', 'Cancelled') NOT NULL,
     shipping_fee DECIMAL(18,2),
     total DECIMAL(18,2) NOT NULL,
     payment_id INT,
