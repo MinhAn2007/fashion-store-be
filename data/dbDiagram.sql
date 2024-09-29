@@ -1,4 +1,3 @@
--- Table for managing product categories
 CREATE TABLE Category (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
@@ -13,6 +12,20 @@ CREATE TABLE Category (
 );
 
 -- Table for managing products
+
+
+
+-- Table for managing users
+CREATE TABLE User (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    password VARCHAR(255) NOT NULL
+
+);
 CREATE TABLE Product (
     id INT PRIMARY KEY AUTO_INCREMENT,
     category_id INT,
@@ -27,17 +40,6 @@ CREATE TABLE Product (
     deleted_at TIMESTAMP DEFAULT NULL,
     FOREIGN KEY (category_id) REFERENCES Category(id) ON DELETE SET NULL
 );
-
-CREATE TABLE User (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
 -- Table for managing addresses
 CREATE TABLE Address (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -66,7 +68,7 @@ CREATE TABLE `Order` (
     canceled_at TIMESTAMP NULL DEFAULT NULL,
     completed_at TIMESTAMP NULL DEFAULT NULL,
     delivery_at TIMESTAMP NULL DEFAULT NULL,
-    FOREIGN KEY (customer_id) REFERENCES Customer(id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES User(id) ON DELETE CASCADE,
     FOREIGN KEY (payment_id) REFERENCES Payment(id) ON DELETE SET NULL,
     FOREIGN KEY (coupon_id) REFERENCES Coupon(id) ON DELETE SET NULL
 );
@@ -81,7 +83,7 @@ CREATE TABLE OrderItem (
     price DECIMAL(10,2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    deleted_at TIMESTAMP DEFAULT NULL,
     FOREIGN KEY (order_id) REFERENCES `Order`(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES Product(id) ON DELETE CASCADE
 );
@@ -110,7 +112,7 @@ CREATE TABLE Cart (
     customer_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (customer_id) REFERENCES Customer(id) ON DELETE CASCADE
+    FOREIGN KEY (customer_id) REFERENCES User(id) ON DELETE CASCADE
 );
 
 -- Table for managing items in carts
@@ -138,7 +140,7 @@ CREATE TABLE Review (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES Product(id) ON DELETE CASCADE,
-    FOREIGN KEY (customer_id) REFERENCES Customer(id) ON DELETE CASCADE
+    FOREIGN KEY (customer_id) REFERENCES User(id) ON DELETE CASCADE
 );
 
 -- Table for managing assets (like images)
@@ -191,20 +193,23 @@ CREATE TABLE products_skus (
     quantity INT NOT NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
+    image_id INT,  -- Thêm cột để liên kết với hình ảnh
     PRIMARY KEY (id),
     KEY product_id (product_id),
     KEY size_attribute_id (size_attribute_id),
     KEY color_attribute_id (color_attribute_id),
-    CONSTRAINT  FOREIGN KEY (product_id) REFERENCES Product (id) ON DELETE CASCADE,
-    CONSTRAINT  FOREIGN KEY (size_attribute_id) REFERENCES Product_Attribute (id) ON DELETE SET NULL,
-    CONSTRAINT  FOREIGN KEY (color_attribute_id) REFERENCES Product_Attribute (id) ON DELETE SET NULL
+    CONSTRAINT FOREIGN KEY (product_id) REFERENCES Product (id) ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (size_attribute_id) REFERENCES Product_Attribute (id) ON DELETE SET NULL,
+    CONSTRAINT FOREIGN KEY (color_attribute_id) REFERENCES Product_Attribute (id) ON DELETE SET NULL,
+    CONSTRAINT FOREIGN KEY (image_id) REFERENCES Assets(id) ON DELETE SET NULL  -- Liên kết với bảng Assets
 );
 
 -- Table for managing payment methods and discount rates
 CREATE TABLE Payment (
     id INT PRIMARY KEY AUTO_INCREMENT,
     payment_method VARCHAR(255) NOT NULL,
-    discount_rate DECIMAL(10, 2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    discount_rate DECIMAL(10, 2) NOT NULL
+
 );
