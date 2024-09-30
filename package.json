@@ -16,11 +16,13 @@
     "express-list-endpoints": "^7.1.0",
     "express-validator": "^7.2.0",
     "faker": "^6.6.6",
+    "fashion-store-be": "file:",
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
     "knex": "^3.1.0",
     "morgan": "~1.9.1",
     "mysql2": "^3.11.3",
+    "nodemon": "^3.1.7",
     "sequelize": "^6.37.3"
   }
 }
