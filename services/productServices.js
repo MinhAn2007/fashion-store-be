@@ -1,6 +1,6 @@
 const knex = require("../config/database").db;
 
-// Function to get products with pagination and only those with assets
+// Hàm để lấy sản phẩm với phân trang
 const getProductsWithPaging = async (limit, offset) => {
   try {
     const products = await knex("Product as p")
@@ -19,7 +19,6 @@ const getProductsWithPaging = async (limit, offset) => {
       .orderBy(knex.raw("MAX(p.created_at)"), "desc")
       .limit(limit)
       .offset(offset);
-
     return products;
   } catch (error) {
     console.error("Error fetching products:", error.message);
@@ -27,6 +26,7 @@ const getProductsWithPaging = async (limit, offset) => {
   }
 };
 
+// Function to get product by ID and ensure it has assets
 const getProductById = async (productId) => {
   try {
     const product = await knex("Product as p")
