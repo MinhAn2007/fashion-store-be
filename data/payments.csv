@@ -1,6 +1,4 @@
 id,payment_method,discount_rate,created_at,updated_at
-1,Payment Method 1,9.31,2024-09-27,2024-09-27
-2,Payment Method 2,11.40,2024-09-27,2024-09-27
-3,Payment Method 3,4.11,2024-09-27,2024-09-27
-4,Payment Method 4,19.10,2024-09-27,2024-09-27
-5,Payment Method 5,19.70,2024-09-27,2024-09-27
+1,MOMO,15,2024-09-27,2024-09-27
+2,CREDIT,10,2024-09-27,2024-09-27
+3,PAYMENT,0,2024-09-27,2024-09-27

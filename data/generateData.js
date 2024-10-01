@@ -33,6 +33,7 @@ function generateProducts(num, categoryCount) {
             sold: Math.floor(Math.random() * 50),
             status: Math.round(Math.random()),
             featured: Math.round(Math.random()),
+            discount_rate: (Math.random() * (30 - 10) + 10).toFixed(2), // Discount rate between 10% - 30%
             created_at: new Date().toISOString().split('T')[0],
             updated_at: new Date().toISOString().split('T')[0],
             deleted_at: null
@@ -46,12 +47,12 @@ function generateUsers(num) {
     for (let i = 0; i < num; i++) {
         users.push({
             id: i + 1,
-            first_name: faker.name.firstName(),
-            last_name: faker.name.lastName(),
+            first_name: faker.person.firstName(),
+            last_name: faker.person.lastName(),
             email: faker.internet.email(),
-            password: 'password123',
             created_at: new Date().toISOString().split('T')[0],
-            updated_at: new Date().toISOString().split('T')[0]
+            updated_at: new Date().toISOString().split('T')[0],
+            password: 'password123'
         });
     }
     return users;
@@ -127,8 +128,6 @@ function generateCoupons(num) {
             coupon_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             coupon_min_spend: (Math.random() * (100 - 10) + 10).toFixed(2),
             coupon_max_spend: (Math.random() * (200 - 50) + 50).toFixed(2),
-            coupon_uses_per_customer: Math.floor(Math.random() * 5) + 1,
-            coupon_uses_per_coupon: Math.floor(Math.random() * 100) + 1,
             coupon_status: ['active', 'expired', 'disabled'][Math.floor(Math.random() * 3)],
             created_at: new Date().toISOString().split('T')[0],
             updated_at: new Date().toISOString().split('T')[0],
@@ -209,118 +208,68 @@ function generateProductAssets(num, productCount, assetCount) {
             id: i + 1,
             product_id: Math.floor(Math.random() * productCount) + 1,
             asset_id: Math.floor(Math.random() * assetCount) + 1,
-            type: 'image',
-        });
-    }
-    return productAssets;
-}
-
-function generateAttributes(num) {
-    const attributes = [];
-    for (let i = 0; i < num; i++) {
-        attributes.push({
-            id: i + 1,
-            name: `Attribute ${i + 1}`,
-            description: `This is the description for Attribute ${i + 1}`
-        });
-    }
-    return attributes;
-}
-
-function generateProductAttributes(num, productCount, attributeCount) {
-    const productAttributes = [];
-    for (let i = 0; i < num; i++) {
-        productAttributes.push({
-            id: i + 1,
-            product_id: Math.floor(Math.random() * productCount) + 1,
-            attribute_id: Math.floor(Math.random() * attributeCount) + 1,
-            value: `Value ${Math.floor(Math.random() * 100) + 1}`
-        });
-    }
-    return productAttributes;
-}
-
-function generateProductSkus(num, productCount) {
-    const productSkus = [];
-    for (let i = 0; i < num; i++) {
-        productSkus.push({
-            id: i + 1,
-            product_id: Math.floor(Math.random() * productCount) + 1,
-            size_attribute_id: Math.floor(Math.random() * 10) + 1,
-            color_attribute_id: Math.floor(Math.random() * 10) + 1,
-            sku: `SKU-${i + 1}`,
-            price: (Math.random() * (100 - 10) + 10).toFixed(2),
-            quantity: Math.floor(Math.random() * 50) + 1,
-            created_at: new Date().toISOString().split('T')[0],
-            deleted_at: null
-        });
-    }
-    return productSkus;
-}
-
-function generatePayments(num) {
-    const payments = [];
-    for (let i = 0; i < num; i++) {
-        payments.push({
-            id: i + 1,
-            payment_method: `Payment Method ${i + 1}`,
-            discount_rate: (Math.random() * 20).toFixed(2),
+            is_main: Math.random() < 0.5,
             created_at: new Date().toISOString().split('T')[0],
             updated_at: new Date().toISOString().split('T')[0]
         });
     }
-    return payments;
+    return productAssets;
+}
+function generateStockHistory(num, productCount) {
+    const stockHistory = [];
+    for (let i = 0; i < num; i++) {
+        stockHistory.push({
+            id: i + 1,
+            product_id: Math.floor(Math.random() * productCount) + 1,
+            quantity: Math.floor(Math.random() * 100) + 1,
+            arrival_time: new Date(Date.now() - Math.floor(Math.random() * 1000000000)).toISOString().split('T')[0]
+        });
+    }
+    return stockHistory;
 }
 
-// Function to write data to CSV
-function writeToCSV(fileName, data) {
+// Generate data
+const categories = generateCategories(10);
+const products = generateProducts(50, categories.length);
+const users = generateUsers(20);
+const addresses = generateAddresses(30, users.length);
+const orders = generateOrders(15, users.length);
+const orderItems = generateOrderItems(40, orders.length, products.length);
+const coupons = generateCoupons(10);
+const carts = generateCarts(15, users.length);
+const cartItems = generateCartItems(30, carts.length, products.length);
+const reviews = generateReviews(20, products.length, users.length);
+const assets = generateAssets(20);
+const productAssets = generateProductAssets(30, products.length, assets.length);
+const stockHistory = generateStockHistory(30, products.length); // Sinh ra 100 dòng lịch sử nhập kho
+
+// Writing CSV files
+const writeCSV = (fileName, data) => {
     const csvWriter = createObjectCsvWriter({
         path: fileName,
         header: Object.keys(data[0]).map(key => ({ id: key, title: key }))
     });
+    return csvWriter.writeRecords(data);
+};
 
-    csvWriter.writeRecords(data)
-        .then(() => {
-            console.log(`${fileName} written successfully.`);
-        });
-}
-
-// Main function to generate data and write to CSV
-function generateData() {
-    const categories = generateCategories(10);
-    const products = generateProducts(50, categories.length);
-    const users = generateUsers(20);
-    const addresses = generateAddresses(30, users.length);
-    const orders = generateOrders(25, users.length);
-    const orderItems = generateOrderItems(100, orders.length, products.length);
-    const coupons = generateCoupons(10);
-    const carts = generateCarts(15, users.length);
-    const cartItems = generateCartItems(50, carts.length, products.length);
-    const reviews = generateReviews(30, products.length, users.length);
-    const assets = generateAssets(20);
-    const productAssets = generateProductAssets(40, products.length, assets.length);
-    const attributes = generateAttributes(10);
-    const productAttributes = generateProductAttributes(30, products.length, attributes.length);
-    const productSkus = generateProductSkus(50, products.length);
-    const payments = generatePayments(5);
-
-    // Write data to CSV files
-    writeToCSV('categories.csv', categories);
-    writeToCSV('products.csv', products);
-    writeToCSV('users.csv', users);
-    writeToCSV('addresses.csv', addresses);
-    writeToCSV('orders.csv', orders);
-    writeToCSV('order_items.csv', orderItems);
-    writeToCSV('coupons.csv', coupons);
-    writeToCSV('carts.csv', carts);
-    writeToCSV('cart_items.csv', cartItems);
-    writeToCSV('reviews.csv', reviews);
-    writeToCSV('assets.csv', assets);
-    writeToCSV('product_assets.csv', productAssets);
-    writeToCSV('attributes.csv', attributes);
-    writeToCSV('product_attributes.csv', productAttributes);
-    writeToCSV('product_skus.csv', productSkus);
-    writeToCSV('payments.csv', payments);
-}
-
-generateData();
+Promise.all([
+    writeCSV('categories.csv', categories),
+    writeCSV('products.csv', products),
+    writeCSV('users.csv', users),
+    writeCSV('addresses.csv', addresses),
+    writeCSV('orders.csv', orders),
+    writeCSV('order_items.csv', orderItems),
+    writeCSV('coupons.csv', coupons),
+    writeCSV('carts.csv', carts),
+    writeCSV('cart_items.csv', cartItems),
+    writeCSV('reviews.csv', reviews),
+    writeCSV('assets.csv', assets),
+    writeCSV('product_assets.csv', productAssets),
+    writeCSV('stock_history.csv', stockHistory) // Thêm dòng này
+])
+    .then(() => {
+        console.log('Data generation completed successfully!');
+    })
+    .catch((error) => {
+        console.error('Error generating data:', error);
+    });

@@ -191,7 +191,7 @@ CREATE TABLE products_skus (
     quantity INT NOT NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
-    image_id INT,  -- Thêm cột để liên kết với hình ảnh
+    image_id INT,  -- Column to link with images
     PRIMARY KEY (id),
     FOREIGN KEY (product_id) REFERENCES Product (id) ON DELETE CASCADE,
     FOREIGN KEY (size_attribute_id) REFERENCES Product_Attribute(id) ON DELETE SET NULL,
@@ -206,4 +206,13 @@ CREATE TABLE Payment (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     discount_rate DECIMAL(10, 2) NOT NULL
+);
+
+-- Table for managing stock history
+CREATE TABLE StockHistory (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    arrival_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES Product(id) ON DELETE CASCADE
 );
