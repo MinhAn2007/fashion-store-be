@@ -50,7 +50,41 @@ const getProductById = async (req, res) => {
   }
 };
 
+const getProductsByCategory = async (req, res) => {
+  // Validate query parameters
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const categoryId = req.params.categoryId;
+  const { limit = 10, page = 1 } = req.query;
+  const limitNumber = parseInt(limit);
+  const pageNumber = parseInt(page);
+  const offset = (pageNumber - 1) * limitNumber;
+
+  try {
+    const products = await productService.getProductsByCategory(categoryId, limitNumber, offset);
+    console.log(products);
+    
+    if (products.length === 0) {
+      return res.status(404).json({ message: 'No products found in this category' });
+    }
+
+    res.status(200).json({
+      categoryId: categoryId,
+      page: pageNumber,
+      limit: limitNumber,
+      offset: offset,
+      products: products
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   getProductsWithPaging,
   getProductById,
+  getProductsByCategory
 };

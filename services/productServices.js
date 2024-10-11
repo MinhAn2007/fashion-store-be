@@ -84,8 +84,48 @@ const getProductById = async (productId) => {
     throw error;
   }
 };
+const getProductsByCategory = async (categoryId, limit, offset) => {
+  try {
+    const products = await knex("Product as p")
+      .leftJoin("Products_Skus as ps", "p.id", "ps.product_id")
+      .leftJoin("Product_Asset as pa", "p.id", "pa.product_id")
+      .leftJoin("Assets as a", "pa.asset_id", "a.id") // Join to get product images
+      .leftJoin("Category as c", "p.category_id", "c.id") // Join to get category name
+      .leftJoin("Category as parent", "c.parent_id", "parent.id") // Join to get parent category name
+      .leftJoin("Product_Attribute as pa1", "p.id", "pa1.product_id") // Join to get product attributes
+      .leftJoin("Attributes as a1", "pa1.attribute_id", "a1.id") // Join to get attribute details
+      .select(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.stock_quantity",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        knex.raw("MIN(ps.price) as price"),
+        knex.raw(`GROUP_CONCAT(DISTINCT a.path) as cover`), // Get all asset URLs for product
+        "c.name as category_name", // Category name
+        "parent.name as parent_category_name", // Parent category name
+        knex.raw(`GROUP_CONCAT(DISTINCT CONCAT('{\"attribute\":\"', a1.name, '\", \"value\":\"', pa1.value, '\"}')) as attributes`), // Get attributes as JSON strings
+        knex.raw(`GROUP_CONCAT(DISTINCT CONCAT('{\"sku\":\"', ps.sku, '\", \"price\":', ps.price, ', \"quantity\":', ps.quantity, '}')) as skus`) // Get SKUs as JSON strings
+      )
+      .where("p.category_id", categoryId) // Filter by category_id
+      .andWhere("p.deleted_at", null) // Only fetch non-deleted products
+      .groupBy("p.id", "p.name", "p.description", "p.stock_quantity", "p.sold", "p.status", "p.featured", "c.name", "parent.name")
+      .having(knex.raw("COUNT(a.id) > 0")) // Only include products with at least one image
+      .orderBy(knex.raw("MAX(p.created_at)"), "desc")
+      .limit(limit)
+      .offset(offset);
+      
+    return products;
+  } catch (error) {
+    console.error("Error fetching products by category:", error.message);
+    throw error;
+  }
+};
 
 module.exports = {
   getProductsWithPaging,
   getProductById,
+  getProductsByCategory
 };

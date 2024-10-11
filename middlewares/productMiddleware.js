@@ -19,7 +19,14 @@ const validateProductId = [
     .withMessage('Product ID must be a positive integer')
 ];
 
+const validateCategoryId = [
+  param('categoryId')
+    .isInt({ min: 1 })
+    .withMessage('Category ID must be a positive integer')
+];
+
 module.exports = {
   validatePagination,
   validateProductId,
+  validateCategoryId
 };
