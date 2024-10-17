@@ -73,9 +73,9 @@ const getProductsByCategory = async (req, res) => {
 
     res.status(200).json({
       categoryId: categoryId,
-      page: pageNumber,
-      limit: limitNumber,
-      offset: offset,
+      // page: pageNumber,
+      // limit: limitNumber,
+      // offset: offset,
       products: products
     });
   } catch (error) {

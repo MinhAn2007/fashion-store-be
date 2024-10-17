@@ -9,6 +9,6 @@ router.get('/products', productMiddleware.validatePagination, productController.
 // Route lấy chi tiết sản phẩm theo productID
 router.get('/product/:id', productMiddleware.validateProductId, productController.getProductById);
 
-router.get('/category/:categoryId/products', productMiddleware.validateCategoryId, productMiddleware.validatePagination, productController.getProductsByCategory);
+router.get('/category/:categoryId', productMiddleware.validateCategoryId, productController.getProductsByCategory);
 
 module.exports = router;
