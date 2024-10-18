@@ -104,6 +104,7 @@ const getProductsByCategory = async (categoryId) => {
         "p.created_at",
         "p.updated_at",
         "p.deleted_at",
+        knex.raw("AVG(r.rating) as rating"), // Thêm rating trung bình
         "ps.id as sku_id",
         "ps.size",
         "ps.color",
@@ -113,23 +114,21 @@ const getProductsByCategory = async (categoryId) => {
         "ps.image"
       )
       .leftJoin("Product as p", "c.id", "=", "p.category_id")
-      .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id");
+      .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id")
+      .leftJoin("Review as r", "p.id", "=", "r.product_id"); // Thêm join với bảng Review
 
     if (categoryId) {
-      console.log("checks");
-
       query.where("c.id", categoryId).orWhere("c.parent_id", categoryId);
     }
+
     console.log(query.toString());
 
-    const products = await query;
+    const products = await query.groupBy("p.id"); // Nhóm theo sản phẩm để tính rating trung bình
 
-    // Chuyển đổi kết quả thành định dạng mong muốn
     const formattedProducts = products.reduce((acc, product) => {
       const existingProduct = acc.find((p) => p.id === product.id);
 
       if (existingProduct) {
-        // Nếu sản phẩm đã tồn tại, thêm SKU vào mảng SKU
         existingProduct.sku.push({
           id: product.sku_id,
           size: product.size,
@@ -140,7 +139,6 @@ const getProductsByCategory = async (categoryId) => {
           image: product.image,
         });
       } else {
-        // Nếu sản phẩm chưa tồn tại, thêm sản phẩm mới
         acc.push({
           id: product.id,
           category_id: product.category_id,
@@ -153,6 +151,7 @@ const getProductsByCategory = async (categoryId) => {
           created_at: product.created_at,
           updated_at: product.updated_at,
           deleted_at: product.deleted_at,
+          rating: product.rating,
           category_name: product.category_name,
           sku: [
             {
@@ -164,7 +163,7 @@ const getProductsByCategory = async (categoryId) => {
               quantity: product.quantity,
               image: product.image,
             },
-          ], // Khởi tạo mảng SKU với SKU đầu tiên
+          ],
         });
       }
 
@@ -178,12 +177,14 @@ const getProductsByCategory = async (categoryId) => {
   }
 };
 
+
 const getAllProducts = async (limit = 10, offset = 0) => {
   try {
     const query = knex("Product as p")
       .leftJoin("Category as c", "p.category_id", "c.id")
       .leftJoin("Category as parent", "c.parent_id", "parent.id")
       .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+      .leftJoin("Review as r", "p.id", "=", "r.product_id") // Thêm join với bảng Review
       .select(
         "p.id",
         "p.name",
@@ -196,6 +197,7 @@ const getAllProducts = async (limit = 10, offset = 0) => {
         "parent.name as parent_category_name",
         knex.raw("MIN(ps.price) as min_price"),
         knex.raw("MAX(ps.price) as max_price"),
+        knex.raw("AVG(r.rating) as rating"),
         knex.raw("GROUP_CONCAT(DISTINCT ps.image) as images"),
         knex.raw(`
           JSON_ARRAYAGG(
@@ -227,6 +229,7 @@ const getAllProducts = async (limit = 10, offset = 0) => {
       .orderBy("p.created_at", "desc")
       .limit(limit)
       .offset(offset);
+
     const products = await query;
 
     return products;
@@ -235,6 +238,7 @@ const getAllProducts = async (limit = 10, offset = 0) => {
     throw error;
   }
 };
+
 
 const getBestsellerProducts = async (limit = 10, offset = 0) => {
   try {
@@ -300,5 +304,5 @@ module.exports = {
   getProductById,
   getProductsByCategory,
   getAllProducts,
-  getBestsellerProducts
+  getBestsellerProducts,
 };
