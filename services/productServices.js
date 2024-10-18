@@ -29,7 +29,10 @@ const getProductsWithPaging = async (limit, offset) => {
 // Function to get product by ID and ensure it has assets
 const getProductById = async (productId) => {
   try {
-    const product = await knex("Product as p")
+    const query = knex("Product as p")
+      .leftJoin("Category as c", "p.category_id", "c.id")
+      .leftJoin("Category as parent", "c.parent_id", "parent.id")
+      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
       .select(
         "p.id",
         "p.name",
@@ -38,29 +41,28 @@ const getProductById = async (productId) => {
         "p.sold",
         "p.status",
         "p.featured",
-        "p.created_at",
-        "p.updated_at",
-        knex.raw(
-          `JSON_ARRAYAGG(
+        "c.name as category_name",
+        "parent.name as parent_category_name",
+        knex.raw("MIN(ps.price) as min_price"),
+        knex.raw("MAX(ps.price) as max_price"),
+        knex.raw("GROUP_CONCAT(DISTINCT ps.image) as images"),
+        knex.raw(`
+          JSON_ARRAYAGG(
             JSON_OBJECT(
-              'size', size.value, 
-              'color', color.value, 
-              'price', ps.price, 
-              'quantity', ps.quantity, 
-              'image', img.path
+              'id', ps.id,
+              'sku', ps.sku,
+              'size', ps.size,
+              'color', ps.color,
+              'price', ps.price,
+              'quantity', ps.quantity,
+              'image', ps.image
             )
-          ) as variants`
-        ), // Now including image for each variant
-        knex.raw(`JSON_ARRAYAGG(a.path) as cover`) // Get all asset URLs associated with the product as an array
+          ) as skus
+        `)
       )
-      .leftJoin("Product_Asset as pa", "p.id", "pa.product_id") // Join to get product assets
-      .leftJoin("Assets as a", "pa.asset_id", "a.id") // Join to get asset details
-      .leftJoin("Products_Skus as ps", "p.id", "ps.product_id") // Join to get product SKUs
-      .leftJoin("Assets as img", "ps.image_id", "img.id") // Join to get the image for each variant
-      .leftJoin("Product_Attribute as size", "ps.size", "size.id") // Join to get size attributes
-      .leftJoin("Product_Attribute as color", "ps.color", "color.id") // Join to get color attributes
       .where("p.id", productId)
-      .andWhere("p.deleted_at", null) // Ensure product is not deleted
+      .whereNull("p.deleted_at")
+      .whereNull("ps.deleted_at")
       .groupBy(
         "p.id",
         "p.name",
@@ -69,18 +71,31 @@ const getProductById = async (productId) => {
         "p.sold",
         "p.status",
         "p.featured",
-        "p.created_at",
-        "p.updated_at"
-      )
-      .limit(1);
+        "c.name",
+        "parent.name"
+      );
 
-    if (product.length) {
-      const productData = product[0];
-      return productData;
+    const product = await query.first();
+
+    if (!product) {
+      throw new Error("Product not found");
     }
-    return null; // Return null if not found
+
+    // Fetch all reviews for the product without is_approved condition
+    const reviewsQuery = knex("Review as r")
+      .select("r.id", "r.rating", "r.title", "r.content", "r.created_at")
+      .where("r.product_id", productId)
+      .orderBy("r.created_at", "desc");
+
+    const reviews = await reviewsQuery;
+
+    // Combine product data and reviews
+    return {
+      ...product,
+      reviews: reviews, // Include all reviews with details
+    };
   } catch (error) {
-    console.error("Error fetching product by ID:", error.message);
+    console.error("Error fetching product by id:", error.message);
     throw error;
   }
 };
@@ -177,7 +192,6 @@ const getProductsByCategory = async (categoryId) => {
   }
 };
 
-
 const getAllProducts = async (limit = 10, offset = 0) => {
   try {
     const query = knex("Product as p")
@@ -238,7 +252,6 @@ const getAllProducts = async (limit = 10, offset = 0) => {
     throw error;
   }
 };
-
 
 const getBestsellerProducts = async (limit = 10, offset = 0) => {
   try {
