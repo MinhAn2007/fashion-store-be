@@ -1,2 +1,2 @@
 id,order_id,product_id,name,quantity,price,created_at,updated_at,deleted_at
-1,1,27,Product 17,5,27.37,2024-09-30,2024-09-30,
+1,1,1,Product 17,5,27.37,2024-09-30,2024-09-30,
