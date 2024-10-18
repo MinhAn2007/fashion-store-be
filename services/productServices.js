@@ -178,7 +178,7 @@ const getProductsByCategory = async (categoryId) => {
   }
 };
 
-const getAllProducts = async (limit = 10, offset = 0) => {  
+const getAllProducts = async (limit = 10, offset = 0) => {
   try {
     const query = knex("Product as p")
       .leftJoin("Category as c", "p.category_id", "c.id")
@@ -228,10 +228,69 @@ const getAllProducts = async (limit = 10, offset = 0) => {
       .limit(limit)
       .offset(offset);
     const products = await query;
-    
+
     return products;
   } catch (error) {
     console.error("Error fetching all products:", error.message);
+    throw error;
+  }
+};
+
+const getBestsellerProducts = async (limit = 10, offset = 0) => {
+  try {
+    const query = knex("Product as p")
+      .leftJoin("Category as c", "p.category_id", "c.id")
+      .leftJoin("Category as parent", "c.parent_id", "parent.id")
+      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+      .select(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.stock_quantity",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name as category_name",
+        "parent.name as parent_category_name",
+        knex.raw("MIN(ps.price) as min_price"),
+        knex.raw("MAX(ps.price) as max_price"),
+        knex.raw("GROUP_CONCAT(DISTINCT ps.image) as images"),
+        knex.raw(`
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ps.id,
+              'sku', ps.sku,
+              'size', ps.size,
+              'color', ps.color,
+              'price', ps.price,
+              'quantity', ps.quantity,
+              'image', ps.image
+            )
+          ) as skus
+        `)
+      )
+      .whereNull("p.deleted_at")
+      .whereNull("ps.deleted_at")
+      .where("p.status", 1) // Assuming status 1 means active
+      .groupBy(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.stock_quantity",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name",
+        "parent.name"
+      )
+      .orderBy("p.sold", "desc")
+      .limit(limit)
+      .offset(offset);
+
+    const bestsellerProducts = await query;
+    return bestsellerProducts;
+  } catch (error) {
+    console.error("Error fetching bestseller products:", error.message);
     throw error;
   }
 };
@@ -241,4 +300,5 @@ module.exports = {
   getProductById,
   getProductsByCategory,
   getAllProducts,
+  getBestsellerProducts
 };
