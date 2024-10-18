@@ -1,5 +1,5 @@
-const { validationResult } = require('express-validator');
-const productService = require('../services/productServices');
+const { validationResult } = require("express-validator");
+const productService = require("../services/productServices");
 
 // Controller lấy sản phẩm với phân trang
 const getProductsWithPaging = async (req, res) => {
@@ -15,15 +15,18 @@ const getProductsWithPaging = async (req, res) => {
   const offset = (pageNumber - 1) * limitNumber;
 
   try {
-    const products = await productService.getProductsWithPaging(limitNumber, offset);
+    const products = await productService.getProductsWithPaging(
+      limitNumber,
+      offset
+    );
     res.json({
       page: pageNumber,
       limit: limitNumber,
       offset: offset,
-      products: products
+      products: products,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -41,12 +44,12 @@ const getProductById = async (req, res) => {
     const product = await productService.getProductById(productId);
 
     if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ message: "Product not found" });
     }
 
     res.status(200).json(product);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -64,11 +67,17 @@ const getProductsByCategory = async (req, res) => {
   const offset = (pageNumber - 1) * limitNumber;
 
   try {
-    const products = await productService.getProductsByCategory(categoryId, limitNumber, offset);
+    const products = await productService.getProductsByCategory(
+      categoryId,
+      limitNumber,
+      offset
+    );
     console.log(products);
-    
+
     if (products.length === 0) {
-      return res.status(404).json({ message: 'No products found in this category' });
+      return res
+        .status(404)
+        .json({ message: "No products found in this category" });
     }
 
     res.status(200).json({
@@ -76,15 +85,33 @@ const getProductsByCategory = async (req, res) => {
       // page: pageNumber,
       // limit: limitNumber,
       // offset: offset,
-      products: products
+      products: products,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const getAllProducts = async (req, res) => {
+  try {
+    const products = await productService.getAllProducts(); // Gọi hàm lấy tất cả sản phẩm
+
+    if (products.length === 0) {
+      return res.status(404).json({ message: "No products found" });
+    }
+
+    res.status(200).json({
+      products: products,
+    });
+  } catch (error) {
+    console.error("Error fetching all products:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
 module.exports = {
   getProductsWithPaging,
   getProductById,
-  getProductsByCategory
+  getProductsByCategory,
+  getAllProducts
 };

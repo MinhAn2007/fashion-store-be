@@ -58,11 +58,7 @@ const getProductById = async (productId) => {
       .leftJoin("Products_Skus as ps", "p.id", "ps.product_id") // Join to get product SKUs
       .leftJoin("Assets as img", "ps.image_id", "img.id") // Join to get the image for each variant
       .leftJoin("Product_Attribute as size", "ps.size", "size.id") // Join to get size attributes
-      .leftJoin(
-        "Product_Attribute as color",
-        "ps.color",
-        "color.id"
-      ) // Join to get color attributes
+      .leftJoin("Product_Attribute as color", "ps.color", "color.id") // Join to get color attributes
       .where("p.id", productId)
       .andWhere("p.deleted_at", null) // Ensure product is not deleted
       .groupBy(
@@ -90,39 +86,47 @@ const getProductById = async (productId) => {
 };
 
 const getProductsByCategory = async (categoryId) => {
+  console.log("categoryId", categoryId);
+
   try {
-    const products = await knex('Product as p')
+    const query = knex("Category as c")
       .select(
-        'p.id',
-        'p.category_id',
-        'p.name',
-        'p.description',
-        'p.stock_quantity',
-        'p.sold',
-        'p.status',
-        'p.featured',
-        'p.created_at',
-        'p.updated_at',
-        'p.deleted_at',
-        'c.name as category_name',
-        'ps.id as sku_id',              // ID của SKU
-        'ps.size',          // Kích thước
-        'ps.color',         // Màu sắc
-        'ps.sku',                        // Mã SKU
-        'ps.price',                      // Giá
-        'ps.quantity',                   // Số lượng
-        'ps.image'                       // Hình ảnh
+        "c.id as category_id",
+        "c.name as category_name",
+        "p.id as product_id",
+        "p.category_id",
+        "p.name as product_name",
+        "p.description",
+        "p.stock_quantity",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "p.created_at",
+        "p.updated_at",
+        "p.deleted_at",
+        "ps.id as sku_id",
+        "ps.size",
+        "ps.color",
+        "ps.sku",
+        "ps.price",
+        "ps.quantity",
+        "ps.image"
       )
-      .join('Category as c', function() {
-        this.on('p.category_id', '=', 'c.id').orOn('p.category_id', '=', 'c.parent_id');
-      })
-      .leftJoin('Products_skus as ps', 'p.id', '=', 'ps.product_id')
-      .where('c.id', categoryId)
-      .orWhere('c.parent_id', categoryId);
+      .leftJoin("Product as p", "c.id", "=", "p.category_id")
+      .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id");
+
+    if (categoryId) {
+      console.log("checks");
+
+      query.where("c.id", categoryId).orWhere("c.parent_id", categoryId);
+    }
+    console.log(query.toString());
+
+    const products = await query;
 
     // Chuyển đổi kết quả thành định dạng mong muốn
     const formattedProducts = products.reduce((acc, product) => {
-      const existingProduct = acc.find(p => p.id === product.id);
+      const existingProduct = acc.find((p) => p.id === product.id);
 
       if (existingProduct) {
         // Nếu sản phẩm đã tồn tại, thêm SKU vào mảng SKU
@@ -133,7 +137,7 @@ const getProductsByCategory = async (categoryId) => {
           sku: product.sku,
           price: product.price,
           quantity: product.quantity,
-          image: product.image
+          image: product.image,
         });
       } else {
         // Nếu sản phẩm chưa tồn tại, thêm sản phẩm mới
@@ -150,30 +154,91 @@ const getProductsByCategory = async (categoryId) => {
           updated_at: product.updated_at,
           deleted_at: product.deleted_at,
           category_name: product.category_name,
-          sku: [{
-            id: product.sku_id,
-            size: product.size,
-            color: product.color,
-            sku: product.sku,
-            price: product.price,
-            quantity: product.quantity,
-            image: product.image
-          }] // Khởi tạo mảng SKU với SKU đầu tiên
+          sku: [
+            {
+              id: product.sku_id,
+              size: product.size,
+              color: product.color,
+              sku: product.sku,
+              price: product.price,
+              quantity: product.quantity,
+              image: product.image,
+            },
+          ], // Khởi tạo mảng SKU với SKU đầu tiên
         });
       }
 
       return acc;
     }, []);
 
-    return formattedProducts
+    return formattedProducts;
   } catch (error) {
-    console.error('Error retrieving products:', error);
+    console.error("Error retrieving products:", error);
     throw error;
   }
-}
+};
+
+const getAllProducts = async (limit = 10, offset = 0) => {  
+  try {
+    const query = knex("Product as p")
+      .leftJoin("Category as c", "p.category_id", "c.id")
+      .leftJoin("Category as parent", "c.parent_id", "parent.id")
+      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+      .select(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.stock_quantity",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name as category_name",
+        "parent.name as parent_category_name",
+        knex.raw("MIN(ps.price) as min_price"),
+        knex.raw("MAX(ps.price) as max_price"),
+        knex.raw("GROUP_CONCAT(DISTINCT ps.image) as images"),
+        knex.raw(`
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ps.id,
+              'sku', ps.sku,
+              'size', ps.size,
+              'color', ps.color,
+              'price', ps.price,
+              'quantity', ps.quantity,
+              'image', ps.image
+            )
+          ) as skus
+        `)
+      )
+      .whereNull("p.deleted_at")
+      .whereNull("ps.deleted_at")
+      .groupBy(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.stock_quantity",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name",
+        "parent.name"
+      )
+      .orderBy("p.created_at", "desc")
+      .limit(limit)
+      .offset(offset);
+    const products = await query;
+    
+    return products;
+  } catch (error) {
+    console.error("Error fetching all products:", error.message);
+    throw error;
+  }
+};
 
 module.exports = {
   getProductsWithPaging,
   getProductById,
   getProductsByCategory,
+  getAllProducts,
 };
