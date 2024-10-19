@@ -105,6 +105,7 @@ const getProductsByCategory = async (categoryId) => {
   console.log("categoryId", categoryId);
 
   try {
+    // Start building the query
     const query = knex("Category as c")
       .select(
         "c.id as category_id",
@@ -129,18 +130,19 @@ const getProductsByCategory = async (categoryId) => {
         "ps.quantity",
         "ps.image"
       )
-      .leftJoin("Product as p", "c.id", "=", "p.category_id")
-      .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id")
-      .leftJoin("Review as r", "p.id", "=", "r.product_id");
+      .innerJoin("Product as p", "c.id", "=", "p.category_id") // Change LEFT JOIN to INNER JOIN
+      .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id") // Keep this as LEFT JOIN
+      .leftJoin("Review as r", "p.id", "=", "r.product_id"); // Keep this as LEFT JOIN
 
+    // Apply category filter
     if (categoryId) {
       query.where("c.id", categoryId).orWhere("c.parent_id", categoryId);
     }
 
-    console.log(query.toString());
+    console.log("Generated SQL query without GROUP BY:", query.toString());
 
-    // Ensure all selected columns are in the group by clause
-    const products = await query.groupBy(
+    // Group by clause
+    query.groupBy(
       "c.id",
       "c.name",
       "p.id",
@@ -163,11 +165,16 @@ const getProductsByCategory = async (categoryId) => {
       "ps.image"
     );
 
+    console.log("Generated SQL query with GROUP BY:", query.toString());
+
+    const products = await query;
+
+    // Format the results
     const formattedProducts = products.reduce((acc, product) => {
       const existingProduct = acc.find((p) => p.id === product.product_id);
 
       if (existingProduct) {
-        existingProduct.sku.push({
+        existingProduct.skus.push({
           id: product.sku_id,
           size: product.size,
           color: product.color,
@@ -191,7 +198,7 @@ const getProductsByCategory = async (categoryId) => {
           deleted_at: product.deleted_at,
           rating: product.rating,
           category_name: product.category_name,
-          sku: [
+          skus: [
             {
               id: product.sku_id,
               size: product.size,
