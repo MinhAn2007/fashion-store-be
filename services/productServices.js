@@ -83,7 +83,7 @@ const getProductById = async (productId) => {
 
     // Fetch all reviews for the product without is_approved condition
     const reviewsQuery = knex("Review as r")
-      .select("r.id", "r.rating", "r.title", "r.content", "r.created_at")
+      .select("r.id", "r.rating", "r.title", "r.content", "r.created_at","r.images","r.video")
       .where("r.product_id", productId)
       .orderBy("r.created_at", "desc");
 
@@ -100,10 +100,12 @@ const getProductById = async (productId) => {
   }
 };
 
+
 const getProductsByCategory = async (categoryId) => {
   console.log("categoryId", categoryId);
 
   try {
+    // Start building the query
     const query = knex("Category as c")
       .select(
         "c.id as category_id",
@@ -119,7 +121,7 @@ const getProductsByCategory = async (categoryId) => {
         "p.created_at",
         "p.updated_at",
         "p.deleted_at",
-        knex.raw("AVG(r.rating) as rating"), // Thêm rating trung bình
+        knex.raw("AVG(r.rating) as rating"), // Average rating
         "ps.id as sku_id",
         "ps.size",
         "ps.color",
@@ -220,6 +222,8 @@ const getProductsByCategory = async (categoryId) => {
   }
 };
 
+
+
 const getAllProducts = async (limit = 10, offset = 0) => {
   try {
     const query = knex("Product as p")
@@ -280,6 +284,7 @@ const getAllProducts = async (limit = 10, offset = 0) => {
     throw error;
   }
 };
+
 
 const getBestsellerProducts = async (limit = 10, offset = 0) => {
   try {
