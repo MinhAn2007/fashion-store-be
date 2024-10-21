@@ -128,23 +128,51 @@ const getProductsByCategory = async (categoryId) => {
         "ps.quantity",
         "ps.image"
       )
-      .leftJoin("Product as p", "c.id", "=", "p.category_id")
-      .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id")
-      .leftJoin("Review as r", "p.id", "=", "r.product_id"); // Thêm join với bảng Review
+      .innerJoin("Product as p", "c.id", "=", "p.category_id") // Change LEFT JOIN to INNER JOIN
+      .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id") // Keep this as LEFT JOIN
+      .leftJoin("Review as r", "p.id", "=", "r.product_id"); // Keep this as LEFT JOIN
 
+    // Apply category filter
     if (categoryId) {
       query.where("c.id", categoryId).orWhere("c.parent_id", categoryId);
     }
 
-    console.log(query.toString());
+    console.log("Generated SQL query without GROUP BY:", query.toString());
 
-    const products = await query.groupBy("p.id"); // Nhóm theo sản phẩm để tính rating trung bình
+    // Group by clause
+    query.groupBy(
+      "c.id",
+      "c.name",
+      "p.id",
+      "p.category_id",
+      "p.name",
+      "p.description",
+      "p.stock_quantity",
+      "p.sold",
+      "p.status",
+      "p.featured",
+      "p.created_at",
+      "p.updated_at",
+      "p.deleted_at",
+      "ps.id",
+      "ps.size",
+      "ps.color",
+      "ps.sku",
+      "ps.price",
+      "ps.quantity",
+      "ps.image"
+    );
 
+    console.log("Generated SQL query with GROUP BY:", query.toString());
+
+    const products = await query;
+
+    // Format the results
     const formattedProducts = products.reduce((acc, product) => {
-      const existingProduct = acc.find((p) => p.id === product.id);
+      const existingProduct = acc.find((p) => p.id === product.product_id);
 
       if (existingProduct) {
-        existingProduct.sku.push({
+        existingProduct.skus.push({
           id: product.sku_id,
           size: product.size,
           color: product.color,
@@ -155,9 +183,9 @@ const getProductsByCategory = async (categoryId) => {
         });
       } else {
         acc.push({
-          id: product.id,
+          id: product.product_id,
           category_id: product.category_id,
-          name: product.name,
+          name: product.product_name,
           description: product.description,
           stock_quantity: product.stock_quantity,
           sold: product.sold,
@@ -168,7 +196,7 @@ const getProductsByCategory = async (categoryId) => {
           deleted_at: product.deleted_at,
           rating: product.rating,
           category_name: product.category_name,
-          sku: [
+          skus: [
             {
               id: product.sku_id,
               size: product.size,

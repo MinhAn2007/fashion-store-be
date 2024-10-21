@@ -16,7 +16,10 @@ const db = knex({
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    ssl: process.env.DB_SSL
+    ssl: {
+      rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true', // Có thể bỏ qua chứng thực nếu cần
+      ca: caCert // Thêm chứng chỉ CA nếu có
+    },
   },
   pool: {
     min: 0,
@@ -24,9 +27,20 @@ const db = knex({
   },
 });
 
+// Thay đổi chế độ SQL
+const setSqlMode = async () => {
+  try {
+    await db.raw("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
+    console.log('Chế độ SQL đã được thay đổi');
+  } catch (err) {
+    console.error('Lỗi khi thay đổi chế độ SQL:', err.message);
+  }
+};
+
 // Kiểm tra kết nối
 const connectDB = async () => {
   try {
+    await setSqlMode(); // Thay đổi chế độ SQL trước khi kiểm tra kết nối
     await db.raw('SELECT 1+1 AS result');
     console.log('Đã kết nối tới MySQL bằng Knex.js');
   } catch (err) {
