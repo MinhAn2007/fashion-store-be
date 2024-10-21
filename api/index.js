@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const expressListEndpoints = require("express-list-endpoints");
 const productRoutes = require("../routes/productRoutes");
+const userRoutes = require("../routes/userRoutes");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -14,6 +15,7 @@ app.use(cors());
 require("../config/database").connectDB(); // Kết nối với cơ sở dữ liệu MongoDB
 
 app.use('/api', productRoutes); // Kết nối route vào ứng dụng
+app.use('/api', userRoutes); // Kết nối route vào ứng dụng
 
 app.listen(PORT, () => {
   // Khởi tạo server và lắng nghe trên PORT được xác định
