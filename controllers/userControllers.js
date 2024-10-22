@@ -5,10 +5,7 @@ const login = async (req, res) => {
 
   try {
     const user = await userServices.login(email, password);
-    res.json({
-      user,
-      token,
-    });
+    res.json(user);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

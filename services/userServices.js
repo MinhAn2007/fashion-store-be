@@ -16,23 +16,35 @@ const login = async (email, password) => {
       throw new Error("Mật khẩu không chính xác");
     }
 
+    // Tạo JWT token
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
+    console.log("Token:", token);
+    
+    // Lấy số lượng sản phẩm trong giỏ hàng của người dùng
+    const cartQuantityResult = await knex("CartItem")
+      .join("Cart", "CartItem.cart_id", "=", "Cart.id")
+      .where("Cart.customer_id", user.id)
+      .sum("CartItem.quantity as totalQuantity");
+
+    const totalCartQuantity = cartQuantityResult[0].totalQuantity || 0;
 
     return {
       user: {
         userId: user.id,
         firstName: user.first_name,
         lastName: user.last_name,
+        totalCartQuantity, // Trả về số lượng sản phẩm trong giỏ hàng
       },
-      token,
-    }; // Trả về thông tin người dùng
+      token: token,
+    };
   } catch (error) {
     console.error("Error during login:", error.message);
-    throw error; // Ném lỗi để xử lý bên ngoài
+    throw error;
   }
 };
+
 
 const signUp = async (firstName, lastName, email, password, addresses) => {
   try {

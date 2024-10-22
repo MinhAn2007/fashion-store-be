@@ -181,3 +181,4 @@ CREATE TABLE Stock_History (
     KEY product_id (product_id),
     FOREIGN KEY (product_id) REFERENCES Product(id) ON DELETE CASCADE
 );
+ADD FOREIGN KEY (product_id) REFERENCES Products_skus(id) ON DELETE CASCADE;
