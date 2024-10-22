@@ -1,5 +1,7 @@
 const knex = require("../config/database").db;
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
 const login = async (email, password) => {
   try {
     const user = await knex("User").where({ email }).first(); // Lấy thông tin người dùng theo email
@@ -9,15 +11,22 @@ const login = async (email, password) => {
     }
 
     // Kiểm tra mật khẩu
-    const isMatch = (await password) === user.password;
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       throw new Error("Mật khẩu không chính xác");
     }
 
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
     return {
-      userId: user.id,
-      firstName: user.first_name,
-      lastName: user.last_name,
+      user: {
+        userId: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+      },
+      token,
     }; // Trả về thông tin người dùng
   } catch (error) {
     console.error("Error during login:", error.message);
@@ -27,10 +36,13 @@ const login = async (email, password) => {
 
 const signUp = async (firstName, lastName, email, password, addresses) => {
   try {
-    // Mã hóa mật khẩu trước khi lưu vào cơ sở dữ liệu
+    const existingUser = await knex("User").where({ email }).first();
+    if (existingUser) {
+      throw new Error("Email đã được sử dụng");
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Thêm người dùng vào bảng User
     const [userId] = await knex("User")
       .insert({
         first_name: firstName,
@@ -38,26 +50,27 @@ const signUp = async (firstName, lastName, email, password, addresses) => {
         email: email,
         password: hashedPassword,
       })
-      .returning("id"); // Trả về ID của người dùng mới được tạo
+      .returning("id");
 
-    // Nếu có địa chỉ, thêm vào bảng Address
     if (addresses && addresses.length > 0) {
       const addressEntries = addresses.map((address) => ({
         user_id: userId,
-        street: address.street,
+        address_line: address.addressLine,
         city: address.city,
         state: address.state,
-        zip_code: address.zip_code,
-        country: address.country,
+        country: 'Vietnam',
+        postal_code: '9999',
+        phone_number: address.phoneNumber,
       }));
 
-      await knex("Address").insert(addressEntries); // Thêm địa chỉ vào bảng Address
+      await knex("Address").insert(addressEntries);
     }
 
-    return { userId }; // Trả về ID người dùng
+    const loginResponse = await login(email, password);
+    return { userId, loginResponse };
   } catch (error) {
     console.error("Error during sign up:", error.message);
-    throw error; // Ném lỗi để xử lý bên ngoài
+    throw error;
   }
 };
 
