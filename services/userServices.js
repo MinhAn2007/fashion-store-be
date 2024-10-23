@@ -20,7 +20,6 @@ const login = async (email, password) => {
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    console.log("Token:", token);
     
     // Lấy số lượng sản phẩm trong giỏ hàng của người dùng
     const cartQuantityResult = await knex("CartItem")
