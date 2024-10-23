@@ -86,7 +86,41 @@ const signUp = async (firstName, lastName, email, password, addresses) => {
   }
 };
 
+const getUserById = async (userId) => {
+  try {
+    // Lấy thông tin người dùng theo ID
+    const user = await knex("User").where({ id: userId }).first();
+
+    if (!user) {
+      throw new Error("Người dùng không tồn tại");
+    }
+
+    // Lấy danh sách địa chỉ của người dùng
+    const addresses = await knex("Address").where({ user_id: userId });
+
+    return {
+      user: {
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+      },
+      addresses: addresses.map(address => ({
+        addressLine: address.address_line,
+        city: address.city,
+        state: address.state,
+        country: address.country,
+        postalCode: address.postal_code,
+        phoneNumber: address.phone_number,
+      })),
+    };
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
 module.exports = {
   login,
   signUp,
+  getUserById,
 };
