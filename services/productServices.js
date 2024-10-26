@@ -89,7 +89,7 @@ const getProductById = async (productId) => {
 
     const reviews = await reviewsQuery;
 
-    let skusArray;
+     let skusArray;
     if (typeof product.skus === 'string') {
       skusArray = JSON.parse(product.skus); // Parse JSON string to array
     } else if (Array.isArray(product.skus)) {

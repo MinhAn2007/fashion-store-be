@@ -126,13 +126,13 @@ CREATE TABLE Cart (
 CREATE TABLE CartItem (
     id INT PRIMARY KEY AUTO_INCREMENT,
     cart_id INT,
-    product_id INT,
+    product_sku_id INT,
     quantity INT,
     price FLOAT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (cart_id) REFERENCES Cart(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES Product(id) ON DELETE CASCADE
+    FOREIGN KEY (product_sku_id) REFERENCES Products_skus(id) ON DELETE CASCADE
 );
 
 -- Table for managing product reviews (if a product or user is deleted, related reviews will be deleted)
