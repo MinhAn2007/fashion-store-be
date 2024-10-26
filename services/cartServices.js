@@ -155,7 +155,7 @@ const addItemToCart = async (customerId, productId, quantity = 1) => {
 
       // Check if product exists and get its default SKU
       const productSku = await trx("Products_skus")
-        .where({ product_id: productId })
+        .where({ id: productId })
         .first();
 
       if (!productSku) {
