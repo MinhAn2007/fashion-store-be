@@ -9,6 +9,7 @@ const getCartItems = async (userId) => {
       .join("Products_skus", "CartItem.product_id", "=", "Products_skus.id")
       .join("Product", "Products_skus.product_id", "=", "Product.id")
       .select(
+        "Products_skus.id as id",
         "Products_skus.product_id as productId",
         "Products_skus.sku",
         "Products_skus.price as skuPrice",

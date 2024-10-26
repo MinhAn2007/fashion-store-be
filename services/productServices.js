@@ -83,16 +83,34 @@ const getProductById = async (productId) => {
 
     // Fetch all reviews for the product without is_approved condition
     const reviewsQuery = knex("Review as r")
-      .select("r.id", "r.rating", "r.title", "r.content", "r.created_at","r.images","r.video")
+      .select("r.id", "r.rating", "r.title", "r.content", "r.created_at", "r.images", "r.video")
       .where("r.product_id", productId)
       .orderBy("r.created_at", "desc");
 
     const reviews = await reviewsQuery;
 
+    let skusArray;
+    if (typeof product.skus === 'string') {
+      skusArray = JSON.parse(product.skus); // Parse JSON string to array
+    } else if (Array.isArray(product.skus)) {
+      skusArray = product.skus; // Use directly if it's already an array
+    } else {
+      skusArray = []; // Fallback in case of unexpected format
+    }
+
+    // Define size order
+    const sizeOrder = ["S", "M", "L"];
+
+    // Filter and sort skus according to the size order
+    const sortedSkus = skusArray
+      .filter(sku => sizeOrder.includes(sku.size)) // Keep only sizes S, M, L
+      .sort((a, b) => sizeOrder.indexOf(a.size) - sizeOrder.indexOf(b.size)); // Sort by defined order
+
     // Combine product data and reviews
     return {
       ...product,
-      reviews: reviews, // Include all reviews with details
+      skus: sortedSkus, // Include sorted SKUs
+      reviews: reviews,  // Include all reviews with details
     };
   } catch (error) {
     console.error("Error fetching product by id:", error.message);
