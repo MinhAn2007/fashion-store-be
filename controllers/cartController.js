@@ -19,22 +19,16 @@ const fetchCartItems = async (req, res) => {
 
 const updateCartItemQuantity = async (req, res) => {
     try {
-        const userId = req.user.id; // Assuming you have user info in request
-        const { productId, action } = req.body;
-
-        if (!productId || !action) {
+        const { productId, quantity , userId } = req.body;
+        console.log("req.body", req.body);
+        
+        if (!productId || !quantity || !userId) {
             return res.status(400).json({
-                error: 'Product ID and action are required'
+                error: 'productId, quantity, userId are required'
             });
         }
 
-        if (!['increase', 'decrease'].includes(action)) {
-            return res.status(400).json({
-                error: 'Invalid action. Must be either increase or decrease'
-            });
-        }
-
-        const result = await cartService.updateCartItemQuantity(userId, productId, action);
+        const result = await cartService.updateCartItemQuantity(userId, productId, quantity);
         res.json(result);
 
     } catch (error) {
@@ -45,8 +39,32 @@ const updateCartItemQuantity = async (req, res) => {
     }
 };
 
+const removeCartItem = async (req, res) => {
+    const { productId, userId } = req.body;
+
+    if (!productId || !userId) {
+        return res.status(400).json({
+            error: 'productId và userId là bắt buộc'
+        });
+    }
+
+    try {
+        const updatedCartItems = await cartService.removeCartItem(userId, productId);
+        res.status(200).json({
+            message: 'Sản phẩm đã được xóa khỏi giỏ hàng',
+            updatedCartItems,
+        });
+    } catch (error) {
+        console.error('Error removing item from cart:', error);
+        res.status(500).json({
+            error: error.message || 'Có lỗi xảy ra khi xóa sản phẩm khỏi giỏ hàng'
+        });
+    }
+};
+
 
 module.exports = {
     updateCartItemQuantity,
     fetchCartItems,
+    removeCartItem,
 };
