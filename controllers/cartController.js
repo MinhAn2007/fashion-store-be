@@ -62,9 +62,32 @@ const removeCartItem = async (req, res) => {
     }
 };
 
+const addItemToCart = async (req, res) => {
+    try {
+      const { userId, productId, quantity } = req.body;
+  
+      const result = await cartService.addItemToCart(userId, productId, quantity);
+  
+      res.status(200).json({
+        success: true,
+        message: "Thêm sản phẩm vào giỏ hàng thành công",
+        cartItems: result.cartItems,
+        totalQuantity: result.totalQuantity
+      });
+    } catch (error) {
+      console.error("Controller error:", error);
+      res.status(400).json({
+        success: false,
+        message: error.message || "Không thể thêm sản phẩm vào giỏ hàng"
+      });
+    }
+  };
+  
+
 
 module.exports = {
     updateCartItemQuantity,
     fetchCartItems,
     removeCartItem,
+    addItemToCart
 };
