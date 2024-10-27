@@ -217,7 +217,6 @@ const addItemToCart = async (customerId, productId, quantity) => {
         //   .decrement("quantity", quantity);
       }
       const { cartItems, totalQuantity } = await getCartItems(customerId);
-
       return { cartItems, totalQuantity };
     });
   } catch (error) {

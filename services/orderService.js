@@ -1,5 +1,5 @@
 const knex = require("../config/database").db;
-
+const cartService = require("./cartServices");
 const createOrder = async (
   userId,
   cartItems,
@@ -13,6 +13,10 @@ const createOrder = async (
     const user = await knex("User").where({ id: userId }).first();
     if (!user) {
       throw new Error("Người dùng không tồn tại");
+    }
+
+    for (const item of cartItems) {
+      await cartService.removeCartItem(userId, item.productId);
     }
 
     // Chuẩn bị dữ liệu cho đơn hàng
