@@ -72,6 +72,7 @@ const signUp = async (firstName, lastName, email, password, addresses) => {
         country: 'Vietnam',
         postal_code: '9999',
         phone_number: address.phoneNumber,
+        type: address.type ? address.type : "Home",
       }));
 
       await knex("Address").insert(addressEntries);
@@ -111,6 +112,7 @@ const getUserById = async (userId) => {
         country: address.country,
         postalCode: address.postal_code,
         phoneNumber: address.phone_number,
+        type: address.type,
       })),
     };
   } catch (error) {

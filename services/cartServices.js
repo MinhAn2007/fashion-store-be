@@ -27,16 +27,17 @@ const getCartItems = async (userId) => {
       return { cartItems: [], totalQuantity: 0 };
     }
 
-    const totalQuantityResult = await knex("CartItem")
-      .join("Cart", "CartItem.cart_id", "=", "Cart.id")
-      .where("Cart.customer_id", userId);
+    const cartItemsWithAvailability = cartItems.map((item) => ({
+      ...item,
+      isInStock: item.quantity <= item.stockQuantity,
+    }));
 
-    const totalQuantity = totalQuantityResult.reduce(
-      (acc, item) => acc + item.quantity,
-      0
-    );
+    // Calculate the total quantity, excluding out-of-stock items
+    const totalQuantity = cartItemsWithAvailability
+      .filter((item) => item.isInStock)
+      .reduce((acc, item) => acc + item.quantity, 0);
 
-    return { cartItems, totalQuantity };
+    return { cartItems: cartItemsWithAvailability, totalQuantity };
   } catch (error) {
     console.error(error);
     throw new Error("Error fetching cart items");
@@ -112,9 +113,9 @@ const updateCartItemQuantity = async (customerId, productId, quantity) => {
       });
 
     // Cập nhật số lượng SKU trong kho
-    await knex("Products_skus")
-      .where("id", productId)
-      .decrement("quantity", quantityDifference); // Trừ số lượng khác biệt
+    // await knex("Products_skus")
+    //   .where("id", productId)
+    //   .decrement("quantity", quantityDifference); // Trừ số lượng khác biệt
 
     return await getCartItems(customerId);
   } catch (error) {
@@ -124,45 +125,43 @@ const updateCartItemQuantity = async (customerId, productId, quantity) => {
 };
 
 const removeCartItem = async (customerId, productId) => {
-    try {
-      const cart = await knex("Cart").where("customer_id", customerId).first();
-  
-      if (!cart) {
-        throw new Error("Giỏ hàng không tồn tại");
-      }
-  
-      const cartItem = await knex("CartItem")
-        .where({
-          cart_id: cart.id,
-          product_sku_id: productId,
-        })
-        .first();
-  
-      if (!cartItem) {
-        throw new Error("Product không tồn tại trong giỏ hàng");
-      }
-  
-      // Hoàn trả số lượng SKU vào kho
-      await knex("Products_skus")
-        .where("id", productId)
-        .increment("quantity", cartItem.quantity); // Thêm số lượng đã xóa
-  
-      const deletedRows = await knex("CartItem")
-        .where({
-          cart_id: cart.id,
-          product_sku_id: productId,
-        })
-        .del();
-  
-      const { cartItems, totalQuantity } = await getCartItems(customerId);
-  
-      return { cartItems, totalQuantity };
-    } catch (error) {
-      console.error("Error removing cart item:", error);
-      throw error;
+  try {
+    const cart = await knex("Cart").where("customer_id", customerId).first();
+
+    if (!cart) {
+      throw new Error("Giỏ hàng không tồn tại");
     }
-  };
-  
+
+    const cartItem = await knex("CartItem")
+      .where({
+        cart_id: cart.id,
+        product_sku_id: productId,
+      })
+      .first();
+
+    if (!cartItem) {
+      throw new Error("Product không tồn tại trong giỏ hàng");
+    }
+    await knex("CartItem")
+      .where({
+        cart_id: cart.id,
+        product_sku_id: productId,
+      })
+      .del();
+
+    //   // Hoàn trả số lượng SKU vào kho
+    //   await knex("Products_skus")
+    //     .where("id", productId)
+    //     .increment("quantity", cartItem.quantity); // Thêm số lượng đã xóa
+
+    const { cartItems, totalQuantity } = await getCartItems(customerId);
+
+    return { cartItems, totalQuantity };
+  } catch (error) {
+    console.error("Error removing cart item:", error);
+    throw error;
+  }
+};
 
 const addItemToCart = async (customerId, productId, quantity) => {
   try {
@@ -203,9 +202,9 @@ const addItemToCart = async (customerId, productId, quantity) => {
             price: sku.price * (existingItem.quantity + quantity),
           });
 
-        await trx("Products_skus")
-          .where("id", productId)
-          .decrement("quantity", quantity);
+        // await trx("Products_skus")
+        //   .where("id", productId)
+        //   .decrement("quantity", quantity);
       } else {
         await trx("CartItem").insert({
           cart_id: cart.id,
@@ -213,39 +212,13 @@ const addItemToCart = async (customerId, productId, quantity) => {
           quantity: quantity,
           price: sku.price * quantity,
         });
-        await trx("Products_skus")
-          .where("id", productId)
-          .decrement("quantity", quantity);
+        // await trx("Products_skus")
+        //   .where("id", productId)
+        //   .decrement("quantity", quantity);
       }
+      const { cartItems, totalQuantity } = await getCartItems(customerId);
 
-      const updatedCartItems = await trx("CartItem")
-        .join("Cart", "CartItem.cart_id", "=", "Cart.id")
-        .join(
-          "Products_skus",
-          "CartItem.product_sku_id",
-          "=",
-          "Products_skus.id"
-        )
-        .select(
-          "Products_skus.product_id as productId",
-          "Products_skus.sku",
-          "Products_skus.price as skuPrice",
-          "CartItem.quantity",
-          "CartItem.price as cartItemPrice",
-          "Products_skus.quantity as stockQuantity",
-          "Products_skus.size as size",
-          "Products_skus.color as color",
-          "Products_skus.image as skuImage",
-          "CartItem.created_at"
-        )
-        .where("Cart.customer_id", customerId);
-
-      const totalQuantity = updatedCartItems.reduce(
-        (acc, item) => acc + item.quantity,
-        0
-      );
-
-      return { cartItems: updatedCartItems, totalQuantity };
+      return { cartItems, totalQuantity };
     });
   } catch (error) {
     console.error("Error adding item to cart:", error);
