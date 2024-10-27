@@ -76,4 +76,41 @@ const createOrder = async (
   }
 };
 
-module.exports = { createOrder };
+const getOrdersWithDetails = async (userId) => {
+    const orders = await knex('Order')
+      .where({ customer_id: userId })
+      .select('*')
+      .orderBy('created_at', 'desc');
+  
+    const orderDetails = await Promise.all(
+      orders.map(async (order) => {
+        const items = await knex('OrderItem')
+          .where({ order_id: order.id })
+          .select('product_id', 'name', 'quantity', 'price');
+        return {
+          ...order,
+          items, // Thêm thông tin chi tiết sản phẩm vào đơn hàng
+        };
+      })
+    );
+  
+    // Phân loại đơn hàng theo trạng thái
+    const result = {
+      complete: [],
+      nonComplete: [],
+    };
+  
+    orderDetails.forEach(order => {
+      if (order.status === 'Delivered') {
+        result.complete.push(order); // Lịch sử mua hàng
+      } else {
+        result.nonComplete.push(order); // Thông tin đơn hàng
+      }
+    });
+  
+    return result; // Trả về đối tượng với thông tin đầy đủ
+  };
+  
+
+
+module.exports = { createOrder, getOrdersWithDetails };
