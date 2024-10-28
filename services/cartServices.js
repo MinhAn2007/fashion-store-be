@@ -131,15 +131,13 @@ const removeCartItem = async (customerId, productId) => {
 
     if (!cart) {
       throw new Error("Giỏ hàng không tồn tại");
-    }
-
+    }    
     const cartItem = await knex("CartItem")
       .where({
         cart_id: cart.id,
         product_sku_id: productId,
       })
-      .first();
-
+      .first();      
     if (!cartItem) {
       throw new Error("Product không tồn tại trong giỏ hàng");
     }

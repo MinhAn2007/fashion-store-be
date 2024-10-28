@@ -48,7 +48,8 @@ const updateCartItemQuantity = async (req, res) => {
 
 const removeCartItem = async (req, res) => {
   const { productId, userId } = req.body;
-
+  console.log("req.body", req.body);
+  
   if (!productId || !userId) {
     return res.status(400).json({
       error: "productId và userId là bắt buộc",
