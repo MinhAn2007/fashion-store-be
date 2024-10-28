@@ -54,7 +54,25 @@ const getOrdersWithDetails = async (req, res) => {
   }
 };
 
+const cancelOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const result = await OrderService.cancelOrder(orderId);
+    res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    console.error("Lỗi khi hủy đơn hàng:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
-  getOrdersWithDetails
+  getOrdersWithDetails,
+  cancelOrder,
 };

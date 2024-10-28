@@ -237,7 +237,9 @@ const getOrdersWithDetails = async (userId) => {
     orders.map(async (order) => {
       const items = await knex("OrderItem")
         .where({ order_id: order.id })
-        .select("product_id", "name", "quantity", "price");
+        .join ("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
+        .join ("Product", "Products_skus.product_id", "=", "Product.id")
+        .select("OrderItem.*", "Products_skus.sku", "Product.name as product_name","Products_skus.image as image"); 
       return {
         ...order,
         items, // Thêm thông tin chi tiết sản phẩm vào đơn hàng
@@ -262,4 +264,48 @@ const getOrdersWithDetails = async (userId) => {
   return result; // Trả về đối tượng với thông tin đầy đủ
 };
 
-module.exports = { createOrder, getOrdersWithDetails };
+const cancelOrder = async (orderId) => {
+  try {
+    // Lấy thông tin đơn hàng trước khi hủy
+    const order = await knex("Order").where({ id: orderId }).first();
+
+    if (!order) {
+      throw new Error("Đơn hàng không tồn tại");
+    }
+
+    if (order.status === "Cancelled") {
+      throw new Error("Đơn hàng đã được hủy trước đó");
+    }
+
+    // Cập nhật trạng thái đơn hàng thành 'Cancelled'
+    await knex("Order")
+      .where({ id: orderId })
+      .update({
+        status: "Cancelled",
+        canceled_at: new Date(),
+      });
+
+    // Khôi phục lại lượng sản phẩm trong kho
+    const orderItems = await knex("OrderItem").where({ order_id: orderId });
+
+    for (const item of orderItems) {
+      const productSku = await knex("Products_skus").where({ id: item.product_id }).first();
+
+      if (productSku) {
+        const newQuantity = productSku.quantity + item.quantity; // Khôi phục lại số lượng
+        await knex("Products_skus").where({ id: item.product_id }).update({ quantity: newQuantity });
+      }
+    }
+
+    return {
+      success: true,
+      message: "Hủy đơn hàng thành công",
+    };
+  } catch (error) {
+    console.error("Error cancelling order:", error);
+    throw new Error(error.message);
+  }
+};
+
+module.exports = { createOrder, getOrdersWithDetails, cancelOrder };
+
