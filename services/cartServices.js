@@ -36,8 +36,9 @@ const getCartItems = async (userId) => {
     const totalQuantity = cartItemsWithAvailability
       .filter((item) => item.isInStock)
       .reduce((acc, item) => acc + item.quantity, 0);
-
+      
     return { cartItems: cartItemsWithAvailability, totalQuantity };
+
   } catch (error) {
     console.error(error);
     throw new Error("Error fetching cart items");
@@ -216,8 +217,8 @@ const addItemToCart = async (customerId, productId, quantity) => {
         //   .where("id", productId)
         //   .decrement("quantity", quantity);
       }
-      const { cartItems, totalQuantity } = await getCartItems(customerId);
-      return { cartItems, totalQuantity };
+      
+      return customerId;
     });
   } catch (error) {
     console.error("Error adding item to cart:", error);
