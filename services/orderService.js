@@ -18,7 +18,9 @@ const createOrder = async (
     if (!user) {
       throw new Error("Người dùng không tồn tại");
     }
-
+    for (const item of cartItems) {
+      await cartService.removeCartItem(userId, item.id);
+    }
     // Create order first to get the order ID
     const orderInsert = {
       address: selectedAddress,
@@ -254,7 +256,7 @@ const getOrdersWithDetails = async (userId) => {
   };
 
   orderDetails.forEach((order) => {
-    if (order.status === "Delivered") {
+    if (order.status === "Completed") {
       result.complete.push(order); // Lịch sử mua hàng
     } else {
       result.nonComplete.push(order); // Thông tin đơn hàng

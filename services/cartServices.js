@@ -126,6 +126,8 @@ const updateCartItemQuantity = async (customerId, productId, quantity) => {
 };
 
 const removeCartItem = async (customerId, productId) => {
+  console.log("Removing cart item:", customerId, productId);
+  
   try {
     const cart = await knex("Cart").where("customer_id", customerId).first();
 
