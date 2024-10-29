@@ -235,47 +235,80 @@ const createOrder = async (
 };
 
 const getOrdersWithDetails = async (userId) => {
-  const orders = await knex("Order")
-    .where({ customer_id: userId })
-    .select("*")
-    .orderBy("created_at", "desc");
+  try {
+    const orders = await knex("Order")
+      .where({ customer_id: userId })
+      .select("*")
+      .orderBy("created_at", "desc");
 
-  const orderDetails = await Promise.all(
-    orders.map(async (order) => {
-      const items = await knex("OrderItem")
-        .where({ order_id: order.id })
-        .join("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
-        .join("Product", "Products_skus.product_id", "=", "Product.id")
-        .select(
-          "OrderItem.*",
-          "Products_skus.sku",
-          "Product.name as product_name",
-          "Products_skus.image as image"
-        );
-      return {
+    const orderDetails = await Promise.all(
+      orders.map(async (order) => {
+        const items = await knex("OrderItem")
+          .where({ order_id: order.id })
+          .join(
+            "Products_skus",
+            "OrderItem.product_id",
+            "=",
+            "Products_skus.id"
+          )
+          .join("Product", "Products_skus.product_id", "=", "Product.id")
+          .select(
+            "OrderItem.*",
+            "OrderItem.price as cartItemPrice",
+            "Products_skus.id as id",
+            "Products_skus.product_id as productId",
+            "Products_skus.sku",
+            "Products_skus.price as skuPrice",
+            "Products_skus.quantity as stockQuantity",
+            "Products_skus.size",
+            "Products_skus.color",
+            "Products_skus.image",
+            "Product.name as product_name"
+          );
+
+        const itemsWithAvailability = items.map((item) => ({
+          ...item,
+          isInStock: item.quantity <= item.stockQuantity,
+          checked: true, // Adding checked property as required by the frontend
+        }));
+
+        return {
+          ...order,
+          items: itemsWithAvailability,
+        };
+      })
+    );
+
+    // Phân loại đơn hàng theo trạng thái
+    const result = {
+      complete: [],
+      nonComplete: [],
+    };
+
+    orderDetails.forEach((order) => {
+      // Calculate total available items (similar to cart total quantity calculation)
+      const availableItems = order.items
+        .filter((item) => item.isInStock)
+        .reduce((acc, item) => acc + item.quantity, 0);
+
+      const orderWithAvailability = {
         ...order,
-        items, // Thêm thông tin chi tiết sản phẩm vào đơn hàng
+        totalAvailableItems: availableItems,
       };
-    })
-  );
 
-  // Phân loại đơn hàng theo trạng thái
-  const result = {
-    complete: [],
-    nonComplete: [],
-  };
+      if (order.status === "Completed" || order.status === "Cancelled") {
+        result.complete.push(orderWithAvailability);
+      } else {
+        result.nonComplete.push(orderWithAvailability);
+      }
+    });
 
-  orderDetails.forEach((order) => {
-    if (order.status === "Completed") {
-      result.complete.push(order); // Lịch sử mua hàng
-    } else {
-      result.nonComplete.push(order); // Thông tin đơn hàng
-    }
-  });
-
-  return result; // Trả về đối tượng với thông tin đầy đủ
+    return result;
+  } catch (error) {
+    console.error("Error in getOrdersWithDetails:", error);
+    throw new Error("Error fetching order details");
+  }
 };
-
 const cancelOrder = async (orderId, cancellationReason) => {
   try {
     // Lấy thông tin đơn hàng trước khi hủy
