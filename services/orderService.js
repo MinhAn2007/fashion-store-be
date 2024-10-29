@@ -199,7 +199,12 @@ const createOrder = async (
           <p>Phí vận chuyển: ${formatCurrency(30000)}</p>
           ${couponId ? `<p>Giảm giá: ${formatCurrency(50000)}</p>` : ""}
           ${paymentId === 1 ? `<p>Giảm giá: ${formatCurrency(50000)}</p>` : ""}
-          <p>Tổng cộng: ${formatCurrency(total - (couponId ? 50000 : 0) - (paymentId === 1 ? 50000 : 0) + 30000)}</p>
+          <p>Tổng cộng: ${formatCurrency(
+            total -
+              (couponId ? 50000 : 0) -
+              (paymentId === 1 ? 50000 : 0) +
+              30000
+          )}</p>
         </div>
         <div class="footer">
           <p>Đơn hàng sẽ được giao trong khoảng 3 - 7 ngày, tùy thuộc vào khu vực của bạn.</p>
@@ -239,9 +244,14 @@ const getOrdersWithDetails = async (userId) => {
     orders.map(async (order) => {
       const items = await knex("OrderItem")
         .where({ order_id: order.id })
-        .join ("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
-        .join ("Product", "Products_skus.product_id", "=", "Product.id")
-        .select("OrderItem.*", "Products_skus.sku", "Product.name as product_name","Products_skus.image as image"); 
+        .join("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
+        .join("Product", "Products_skus.product_id", "=", "Product.id")
+        .select(
+          "OrderItem.*",
+          "Products_skus.sku",
+          "Product.name as product_name",
+          "Products_skus.image as image"
+        );
       return {
         ...order,
         items, // Thêm thông tin chi tiết sản phẩm vào đơn hàng
@@ -266,7 +276,7 @@ const getOrdersWithDetails = async (userId) => {
   return result; // Trả về đối tượng với thông tin đầy đủ
 };
 
-const cancelOrder = async (orderId) => {
+const cancelOrder = async (orderId, cancellationReason) => {
   try {
     // Lấy thông tin đơn hàng trước khi hủy
     const order = await knex("Order").where({ id: orderId }).first();
@@ -279,23 +289,27 @@ const cancelOrder = async (orderId) => {
       throw new Error("Đơn hàng đã được hủy trước đó");
     }
 
-    // Cập nhật trạng thái đơn hàng thành 'Cancelled'
-    await knex("Order")
-      .where({ id: orderId })
-      .update({
-        status: "Cancelled",
-        canceled_at: new Date(),
-      });
+    // Cập nhật trạng thái đơn hàng thành 'Cancelled' và thêm lý do, thời gian hủy
+    await knex("Order").where({ id: orderId }).update({
+      status: "Cancelled",
+      canceled_at: new Date(),
+      cancel_reason: cancellationReason, // Ghi lý do hủy
+      canceled_at: new Date(), // Ghi thời gian hủy
+    });
 
     // Khôi phục lại lượng sản phẩm trong kho
     const orderItems = await knex("OrderItem").where({ order_id: orderId });
 
     for (const item of orderItems) {
-      const productSku = await knex("Products_skus").where({ id: item.product_id }).first();
+      const productSku = await knex("Products_skus")
+        .where({ id: item.product_id })
+        .first();
 
       if (productSku) {
         const newQuantity = productSku.quantity + item.quantity; // Khôi phục lại số lượng
-        await knex("Products_skus").where({ id: item.product_id }).update({ quantity: newQuantity });
+        await knex("Products_skus")
+          .where({ id: item.product_id })
+          .update({ quantity: newQuantity });
       }
     }
 
@@ -310,4 +324,3 @@ const cancelOrder = async (orderId) => {
 };
 
 module.exports = { createOrder, getOrdersWithDetails, cancelOrder };
-
