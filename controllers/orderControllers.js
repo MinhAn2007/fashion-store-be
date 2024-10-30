@@ -72,8 +72,27 @@ const cancelOrder = async (req, res) => {
   }
 };
 
+const updateOrderStatus = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const status = req.body.status;
+    const result = await OrderService.updateOrderStatus(orderId, status);
+    res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật trạng thái đơn hàng:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
   cancelOrder,
+  updateOrderStatus,
 };

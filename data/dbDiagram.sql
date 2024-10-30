@@ -90,9 +90,11 @@ CREATE TABLE `Order` (
     payment_id INT,
     coupon_id INT, -- Connection to coupon
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    canceled_at TIMESTAMP NULL DEFAULT NULL,
+        delivery_at TIMESTAMP NULL DEFAULT NULL,
     completed_at TIMESTAMP NULL DEFAULT NULL,
-    delivery_at TIMESTAMP NULL DEFAULT NULL,
+
+    canceled_at TIMESTAMP NULL DEFAULT NULL,
+    return_at TIMESTAMP NULL DEFAULT NULL,
     address VARCHAR(255) NOT NULL,
     FOREIGN KEY (customer_id) REFERENCES User(id) ON DELETE CASCADE,
     FOREIGN KEY (payment_id) REFERENCES Payment(id) ON DELETE SET NULL,
