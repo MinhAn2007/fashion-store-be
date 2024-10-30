@@ -216,7 +216,7 @@ const createOrder = async (
     </html>
     `;
 
-    const email = "voongocminan20072002@gmail.com";
+    const email = user.email;
     const mailResponse = await mailSender(
       email,
       "Xác nhận đơn hàng từ A&L shop",
