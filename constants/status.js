@@ -15,4 +15,4 @@ const mappingStatusTime = (status) => {
   }
 };
 
-module.exports = mappingStatusTime;
+module.exports = { mappingStatusTime };

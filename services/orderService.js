@@ -204,10 +204,14 @@ const createOrder = async (
         <div class="total">
           <p>Phí vận chuyển: ${formatCurrency(30000)}</p>
           ${couponId ? `<p>Giảm giá: ${formatCurrency(50000)}</p>` : ""}
-          ${paymentId === 1 ? `<p>Giảm giá qua thanh toán online: ${formatCurrency(50000)}</p>` : ""}
-          <p>Tổng cộng: ${formatCurrency(
-            total
-          )}</p>
+          ${
+            paymentId === 1
+              ? `<p>Giảm giá qua thanh toán online: ${formatCurrency(
+                  50000
+                )}</p>`
+              : ""
+          }
+          <p>Tổng cộng: ${formatCurrency(total)}</p>
         </div>
         <div class="footer">
           <p>Đơn hàng sẽ được giao trong khoảng 3 - 7 ngày, tùy thuộc vào khu vực của bạn.</p>
@@ -335,7 +339,6 @@ const cancelOrder = async (orderId, cancellationReason) => {
       status: "Cancelled",
       canceled_at: new Date(),
       cancel_reason: cancellationReason, // Ghi lý do hủy
-      canceled_at: new Date(), // Ghi thời gian hủy
     });
 
     // Khôi phục lại lượng sản phẩm trong kho
@@ -403,6 +406,19 @@ const returnOrder = async (orderId, returnReason) => {
       returned_at: new Date(),
       return_reason: returnReason, // Ghi lý do trả
     });
+    const orderItems = await knex("OrderItem").where({ order_id: orderId });
+    for (const item of orderItems) {
+      const productSku = await knex("Products_skus")
+        .where({ id: item.product_id })
+        .first();
+
+      if (productSku) {
+        const newQuantity = productSku.quantity + item.quantity; // Khôi phục lại số lượng
+        await knex("Products_skus")
+          .where({ id: item.product_id })
+          .update({ quantity: newQuantity });
+      }
+    }
   } catch (error) {
     console.error("Error returning order:", error);
     throw new Error(error.message);
