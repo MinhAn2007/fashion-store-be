@@ -75,6 +75,11 @@ const createOrder = async (
       await knex("Products_skus")
         .where({ id: item.id })
         .update({ quantity: newQuantity });
+      await knex("Product")
+        .where({ id: productSku.product_id })
+        .update({
+          sold: productSku.sold + item.quantity,
+        });
     }
 
     // Clear cart after successful order
@@ -333,7 +338,6 @@ const cancelOrder = async (orderId, cancellationReason) => {
 
     // Khôi phục lại lượng sản phẩm trong kho
     const orderItems = await knex("OrderItem").where({ order_id: orderId });
-
     for (const item of orderItems) {
       const productSku = await knex("Products_skus")
         .where({ id: item.product_id })
@@ -345,6 +349,9 @@ const cancelOrder = async (orderId, cancellationReason) => {
           .where({ id: item.product_id })
           .update({ quantity: newQuantity });
       }
+      await knex("Product").update({
+        sold: productSku.sold - item.quantity,
+      });
     }
 
     return {
@@ -385,7 +392,7 @@ const updateOrderStatus = async (orderId, status) => {
     await knex("Order")
       .where({ id: orderId })
       .update({ status, [statusTime]: new Date() });
-    
+
     return {
       success: true,
       message: "Đã cập nhật trạng thái đơn hàng",
@@ -396,9 +403,36 @@ const updateOrderStatus = async (orderId, status) => {
   }
 };
 
+const returnOrder = async (orderId, returnReason) => {
+  try {
+    // Lấy thông tin đơn hàng trước khi hủy
+    const order = await knex("Order").where({ id: orderId }).first();
+
+    if (!order) {
+      throw new Error("Đơn hàng không tồn tại");
+    }
+
+    if (order.status === "Returned") {
+      throw new Error("Đơn hàng đã được trả trước đó");
+    }
+
+    // Cập nhật trạng thái đơn hàng thành 'Returned' và thêm lý do, thời gian trả
+
+    await knex("Order").where({ id: orderId }).update({
+      status: "Returned",
+      returned_at: new Date(),
+      return_reason: returnReason, // Ghi lý do trả
+    });
+  } catch (error) {
+    console.error("Error returning order:", error);
+    throw new Error(error.message);
+  }
+};
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
   cancelOrder,
   updateOrderStatus,
+  returnOrder,
 };

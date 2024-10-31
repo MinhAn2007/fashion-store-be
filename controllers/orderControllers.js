@@ -90,9 +90,28 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+const returnOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const reason = req.body.reason;
+    console.log(reason);
+    
+    const result = await OrderService.returnOrder(orderId,reason);
+    res.status(200).json({
+      success: true,
+    });
+  } catch (error) {
+    console.error("Lỗi khi trả đơn hàng:", error.message);
+    return res.status(500).json({
+      success: false,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
   cancelOrder,
   updateOrderStatus,
+  returnOrder,
 };
