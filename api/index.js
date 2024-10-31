@@ -6,6 +6,7 @@ const userRoutes = require("../routes/userRoutes");
 const cartRoutes = require("../routes/cartRoutes");
 const orderRoutes = require("../routes/orderRoutes");
 const paymentRoutes = require("../routes/paymentRoutes");
+const reviewRoutes = require("../routes/reviewRoutes");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -22,6 +23,7 @@ app.use('/api', userRoutes); // Kết nối route vào ứng dụng
 app.use('/api', cartRoutes); // Kết nối route vào ứng dụng
 app.use('/api', orderRoutes); // Kết nối route vào ứng dụng
 app.use('/api', paymentRoutes); // Kết nối route vào ứng dụng
+app.use('/api', reviewRoutes); // Kết nối route vào ứng dụng
 
 app.listen(PORT, () => {
   // Khởi tạo server và lắng nghe trên PORT được xác định
