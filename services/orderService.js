@@ -2,6 +2,7 @@ const knex = require("../config/database").db;
 const cartService = require("./cartServices");
 const { getUserById } = require("./userServices");
 const mailSender = require("../utils/mailSender");
+const { mappingStatusTime } = require("../constants/status");
 const createOrder = async (
   userId,
   cartItems,
@@ -302,7 +303,7 @@ const getOrdersWithDetails = async (userId) => {
         totalAvailableItems: availableItems,
       };
 
-      if (order.status === "Completed" || order.status === "Cancelled") {
+      if (order.status === "Completed" || order.status === "Cancelled" || order.status === "Returned") {
         result.complete.push(orderWithAvailability);
       } else {
         result.nonComplete.push(orderWithAvailability);
@@ -363,28 +364,7 @@ const cancelOrder = async (orderId, cancellationReason) => {
     throw new Error(error.message);
   }
 };
-// created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-// delivery_at TIMESTAMP NULL DEFAULT NULL,
-// completed_at TIMESTAMP NULL DEFAULT NULL,
 
-// canceled_at TIMESTAMP NULL DEFAULT NULL,
-// return_at TIMESTAMP NULL DEFAULT NULL,
-const mappingStatusTime = (status) => {
-  switch (status) {
-    case "Pending Confirmation":
-      return "created_at";
-    case "Shipping":
-      return "delivery_at";
-    case "Completed":
-      return "completed_at";
-    case "Cancelled":
-      return "canceled_at";
-    case "Returned":
-      return "return_at";
-    default:
-      return "created_at";
-  }
-};
 
 const updateOrderStatus = async (orderId, status) => {
   try {
