@@ -36,7 +36,7 @@ const reviewProduct = async (
 
 const getReviewsByUserId = async (userId) => {
   try {
-    const reviews = await knex("Review").where("user_id", userId);
+    const reviews = await knex("Review").join("Product", "Review.product_id", "Product.id").select("Review.*","Product.name").where("customer_id", userId);
 
     return reviews;
   } catch (error) {
@@ -49,7 +49,7 @@ const getReviewByOrderId = async (orderId) => {
   console.log(orderId);
   
   try {
-    const reviews = await knex("Review").where("order_id", orderId);
+    const reviews = await knex("Review").join("Product", "Review.product_id", "Product.id").select("Review.*","Product.name").where("order_id", orderId);
 
     return reviews;
   } catch (error) {

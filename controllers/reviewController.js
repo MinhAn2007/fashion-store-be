@@ -4,10 +4,10 @@ const AWS = require("aws-sdk");
 const path = require("path");
 
 const getReviewsByUserId = async (req, res) => {
-  const { userId } = req.params;
+  const { id } = req.params;
 
   try {
-    const reviews = await reviewService.getReviewsByUserId(userId);
+    const reviews = await reviewService.getReviewsByUserId(id);
     res.json(reviews);
   } catch (error) {
     console.error("Error fetching reviews by user id:", error.message); // Log the error
