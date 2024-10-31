@@ -5,18 +5,25 @@ const reviewProduct = async (
   userId,
   rating,
   content,
-  image,
-  video
+  images,
+  video,
+  title,
+  orderId
 ) => {
   try {
+    console.log(content);
+
     const review = await knex("Review")
       .insert({
         product_id: productId,
-        user_id: userId,
+        customer_id: userId,
         rating,
         content,
-        image,
+        images: images ? images : null,
         video,
+        title,
+        created_at: new Date(),
+        order_id: orderId,
       })
       .returning("*");
 
@@ -25,4 +32,34 @@ const reviewProduct = async (
     console.error("Error during review product:", error.message);
     throw error;
   }
+};
+
+const getReviewsByUserId = async (userId) => {
+  try {
+    const reviews = await knex("Review").where("user_id", userId);
+
+    return reviews;
+  } catch (error) {
+    console.error("Error fetching reviews by user id:", error.message);
+    throw error;
+  }
+};
+
+const getReviewByOrderId = async (orderId) => {
+  console.log(orderId);
+  
+  try {
+    const reviews = await knex("Review").where("order_id", orderId);
+
+    return reviews;
+  } catch (error) {
+    console.error("Error fetching reviews by order id:", error.message);
+    throw error;
+  }
+};
+
+module.exports = {
+  reviewProduct,
+  getReviewsByUserId,
+  getReviewByOrderId,
 };

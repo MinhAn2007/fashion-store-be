@@ -146,13 +146,13 @@ CREATE TABLE Review (
     rating INT,
     title VARCHAR(255),
     content TEXT,
-    is_approved BOOLEAN,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     images JSON,
     video JSON,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES Product(id) ON DELETE CASCADE,
     FOREIGN KEY (customer_id) REFERENCES User(id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES Order(id) ON DELETE CASCADE
 );
 
 -- Table for managing product SKUs (if a product is deleted, related SKUs will be deleted)

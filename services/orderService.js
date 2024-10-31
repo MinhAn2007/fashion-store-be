@@ -253,12 +253,7 @@ const getOrdersWithDetails = async (userId) => {
       orders.map(async (order) => {
         const items = await knex("OrderItem")
           .where({ order_id: order.id })
-          .join(
-            "Products_skus",
-            "OrderItem.product_id",
-            "=",
-            "Products_skus.id"
-          )
+          .join("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
           .join("Product", "Products_skus.product_id", "=", "Product.id")
           .select(
             "OrderItem.*",
@@ -274,36 +269,43 @@ const getOrdersWithDetails = async (userId) => {
             "Product.name as product_name"
           );
 
+        // Thêm thuộc tính availability cho từng sản phẩm
         const itemsWithAvailability = items.map((item) => ({
           ...item,
-          isInStock: item.quantity <= item.stockQuantity,
-          checked: true, // Adding checked property as required by the frontend
+          isInStock: item.stockQuantity > 0, // Cập nhật điều kiện
+          checked: true,
         }));
+
+        // Kiểm tra xem đơn hàng đã có đánh giá chưa
+        const isReview = await knex("Review")
+          .where({ order_id: order.id })
+          .first();
 
         return {
           ...order,
           items: itemsWithAvailability,
+          isReview: Boolean(isReview),  
         };
       })
     );
-
-    // Phân loại đơn hàng theo trạng thái
+    
     const result = {
       complete: [],
       nonComplete: [],
     };
 
     orderDetails.forEach((order) => {
-      // Calculate total available items (similar to cart total quantity calculation)
-      const availableItems = order.items
+      // Tính tổng số sản phẩm có sẵn trong đơn hàng
+      const totalAvailableItems = order.items
         .filter((item) => item.isInStock)
         .reduce((acc, item) => acc + item.quantity, 0);
 
       const orderWithAvailability = {
         ...order,
-        totalAvailableItems: availableItems,
+        totalAvailableItems,
       };
 
+      // Phân loại đơn hàng theo trạng thái
       if (
         order.status === "Completed" ||
         order.status === "Cancelled" ||
@@ -321,6 +323,7 @@ const getOrdersWithDetails = async (userId) => {
     throw new Error("Error fetching order details");
   }
 };
+
 const cancelOrder = async (orderId, cancellationReason) => {
   try {
     // Lấy thông tin đơn hàng trước khi hủy
