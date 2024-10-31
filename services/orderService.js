@@ -204,12 +204,9 @@ const createOrder = async (
         <div class="total">
           <p>Phí vận chuyển: ${formatCurrency(30000)}</p>
           ${couponId ? `<p>Giảm giá: ${formatCurrency(50000)}</p>` : ""}
-          ${paymentId === 1 ? `<p>Giảm giá: ${formatCurrency(50000)}</p>` : ""}
+          ${paymentId === 1 ? `<p>Giảm giá qua thanh toán online: ${formatCurrency(50000)}</p>` : ""}
           <p>Tổng cộng: ${formatCurrency(
-            total -
-              (couponId ? 50000 : 0) -
-              (paymentId === 1 ? 50000 : 0) +
-              30000
+            total
           )}</p>
         </div>
         <div class="footer">
@@ -303,7 +300,11 @@ const getOrdersWithDetails = async (userId) => {
         totalAvailableItems: availableItems,
       };
 
-      if (order.status === "Completed" || order.status === "Cancelled" || order.status === "Returned") {
+      if (
+        order.status === "Completed" ||
+        order.status === "Cancelled" ||
+        order.status === "Returned"
+      ) {
         result.complete.push(orderWithAvailability);
       } else {
         result.nonComplete.push(orderWithAvailability);
@@ -364,7 +365,6 @@ const cancelOrder = async (orderId, cancellationReason) => {
     throw new Error(error.message);
   }
 };
-
 
 const updateOrderStatus = async (orderId, status) => {
   try {
