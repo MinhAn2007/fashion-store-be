@@ -1,22 +1,20 @@
 const knex = require("../config/database").db;
 
-// Hàm để lấy sản phẩm với phân trang
 const getProductsWithPaging = async (limit, offset) => {
   try {
     const products = await knex("Product as p")
       .leftJoin("Products_Skus as ps", "p.id", "ps.product_id")
       .leftJoin("Product_Asset as pa", "p.id", "pa.product_id")
-      .leftJoin("Assets as a", "pa.asset_id", "a.id") // Joining with Assets to get cover image
+      .leftJoin("Assets as a", "pa.asset_id", "a.id") 
       .select(
         "p.id",
         "p.name",
         knex.raw("MIN(ps.price) as price"),
         knex.raw(`JSON_ARRAYAGG(a.path) as cover`)
-      ) // Get all asset URLs associated with the product
-      .where("p.deleted_at", null) // Ensure not fetching deleted products
+      ) 
+      .where("p.deleted_at", null)
       .groupBy("p.id", "p.name")
-      .having(knex.raw("COUNT(a.id) > 0")) // Only include products with at least one asset
-      .orderBy(knex.raw("MAX(p.created_at)"), "desc")
+      .having(knex.raw("COUNT(a.id) > 0")) 
       .limit(limit)
       .offset(offset);
     return products;
@@ -26,7 +24,6 @@ const getProductsWithPaging = async (limit, offset) => {
   }
 };
 
-// Function to get product by ID and ensure it has assets
 const getProductById = async (productId) => {
   try {
     const query = knex("Product as p")
@@ -79,7 +76,6 @@ const getProductById = async (productId) => {
       throw new Error("Product not found");
     }
 
-    // Fetch all reviews for the product without is_approved condition
     const reviewsQuery = knex("Review as r")
       .select(
         "r.id",
@@ -358,9 +354,9 @@ const getBestsellerProducts = async (limit = 10, offset = 0) => {
   }
 };
 
-//TOi can query cac san pham sku co gia la 199000
-
 const getProductsByPrice = async (min, max) => {
+  console.log("min", min);
+  console.log("max", max);
   try {
     const query = knex("Product as p")
       .leftJoin("Category as c", "p.category_id", "c.id")
@@ -415,6 +411,60 @@ const getProductsByPrice = async (min, max) => {
   }
 };
 
+const getNewProducts = async () => {
+  try {
+    const query = knex("Product as p")
+      .leftJoin("Category as c", "p.category_id", "c.id")
+      .leftJoin("Category as parent", "c.parent_id", "parent.id")
+      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+      .select(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name as category_name",
+        "parent.name as parent_category_name",
+        knex.raw("MIN(ps.price) as min_price"),
+        knex.raw("MAX(ps.price) as max_price"),
+        knex.raw("GROUP_CONCAT(DISTINCT ps.image) as images"),
+        knex.raw(`
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ps.id,
+              'sku', ps.sku,
+              'size', ps.size,
+              'color', ps.color,
+              'price', ps.price,
+              'quantity', ps.quantity,
+              'image', ps.image
+            )
+          ) as skus
+        `)
+      )
+      .whereNull("p.deleted_at")
+      .whereNull("ps.deleted_at")
+      .groupBy(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name",
+        "parent.name"
+      )
+      .orderBy("p.created_at", "desc")
+      .limit(12);
+    const newProducts = await query;
+    return newProducts;
+  } catch (error) {
+    console.error("Error fetching new products:", error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   getProductsWithPaging,
   getProductById,
@@ -422,4 +472,5 @@ module.exports = {
   getAllProducts,
   getBestsellerProducts,
   getProductsByPrice,
+  getNewProducts,
 };
