@@ -36,9 +36,8 @@ const getCartItems = async (userId) => {
     const totalQuantity = cartItemsWithAvailability
       .filter((item) => item.isInStock)
       .reduce((acc, item) => acc + item.quantity, 0);
-      
-    return { cartItems: cartItemsWithAvailability, totalQuantity };
 
+    return { cartItems: cartItemsWithAvailability, totalQuantity };
   } catch (error) {
     console.error(error);
     throw new Error("Error fetching cart items");
@@ -127,19 +126,19 @@ const updateCartItemQuantity = async (customerId, productId, quantity) => {
 
 const removeCartItem = async (customerId, productId) => {
   console.log("Removing cart item:", customerId, productId);
-  
+
   try {
     const cart = await knex("Cart").where("customer_id", customerId).first();
 
     if (!cart) {
       throw new Error("Giỏ hàng không tồn tại");
-    }    
+    }
     const cartItem = await knex("CartItem")
       .where({
         cart_id: cart.id,
         product_sku_id: productId,
       })
-      .first();      
+      .first();
     if (!cartItem) {
       throw new Error("Product không tồn tại trong giỏ hàng");
     }
@@ -167,12 +166,13 @@ const removeCartItem = async (customerId, productId) => {
 const addItemToCart = async (customerId, productId, quantity) => {
   try {
     return await knex.transaction(async (trx) => {
-      let cart = await trx("Cart").where("customer_id", customerId).first();
+      let cart = await trx("Cart").where("customer_id", customerId);
 
-      if (!cart) {
+      if (!cart || cart.length === 0) {
         [cart] = await trx("Cart")
           .insert({ customer_id: customerId })
           .returning("*");
+        cart = await trx("Cart").where("customer_id", customerId);
       }
 
       const sku = await trx("Products_skus").where({ id: productId }).first();
@@ -184,10 +184,10 @@ const addItemToCart = async (customerId, productId, quantity) => {
       if (sku.quantity < quantity) {
         throw new Error("Số lượng SKU trong kho không đủ");
       }
-
+      // Check for existing cart item
       const existingItem = await trx("CartItem")
         .where({
-          cart_id: cart.id,
+          cart_id: cart[0].id,
           product_sku_id: productId,
         })
         .first();
@@ -195,7 +195,7 @@ const addItemToCart = async (customerId, productId, quantity) => {
       if (existingItem) {
         await trx("CartItem")
           .where({
-            cart_id: cart.id,
+            cart_id: cart[0].id,
             product_sku_id: productId,
           })
           .update({
@@ -207,17 +207,22 @@ const addItemToCart = async (customerId, productId, quantity) => {
         //   .where("id", productId)
         //   .decrement("quantity", quantity);
       } else {
+        // Insert new cart item
         await trx("CartItem").insert({
-          cart_id: cart.id,
+          cart_id: cart[0].id,
           product_sku_id: productId,
           quantity: quantity,
           price: sku.price * quantity,
+          created_at: trx.fn.now(),
+          updated_at: trx.fn.now(),
         });
-        // await trx("Products_skus")
-        //   .where("id", productId)
-        //   .decrement("quantity", quantity);
       }
-      
+
+      // Uncomment these lines if you want to update inventory immediately
+      // await trx("Products_skus")
+      //   .where("id", productId)
+      //   .decrement("quantity", quantity);
+
       return customerId;
     });
   } catch (error) {
@@ -225,7 +230,6 @@ const addItemToCart = async (customerId, productId, quantity) => {
     throw error;
   }
 };
-
 module.exports = {
   getCartItems,
   updateCartItemQuantity,

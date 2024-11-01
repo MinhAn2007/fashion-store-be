@@ -79,6 +79,8 @@ const addItemToCart = async (req, res) => {
 
     const customerIds = await cartService.addItemToCart(userId, productId, quantity);
     const result = await cartService.getCartItems(customerIds);
+    console.log("result", result);
+    
     res.status(200).json({
       success: true,
       message: "Thêm sản phẩm vào giỏ hàng thành công",
