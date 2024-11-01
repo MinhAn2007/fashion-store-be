@@ -42,9 +42,31 @@ const getUserInfo = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+//
+//Controller chỉnh sửa thông tin
+const updateUserInfo = async (req, res) => {
+  const userId = req.user.userId; // Lấy userId từ token đã xác thực
+  const { firstName, lastName, email, addresses } = req.body;
+
+  try {
+    const updatedUser = await userServices.updateUser(userId, {
+      firstName,
+      lastName,
+      email,
+      addresses,
+    });
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+///
 
 module.exports = {
   login,
   getUserInfo,
   signUp,
+  ///
+  updateUserInfo
+  ///
 };

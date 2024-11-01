@@ -20,7 +20,7 @@ const login = async (email, password) => {
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    
+
     // Lấy số lượng sản phẩm trong giỏ hàng của người dùng
     const cartQuantityResult = await knex("CartItem")
       .join("Cart", "CartItem.cart_id", "=", "Cart.id")
@@ -120,8 +120,49 @@ const getUserById = async (userId) => {
   }
 };
 
+///
+const updateUser = async (userId, { firstName, lastName, email, addresses }) => {
+  try {
+    // Cập nhật thông tin cơ bản của người dùng
+    await knex("User")
+      .where({ id: userId })
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+      });
+
+    // Cập nhật địa chỉ nếu có
+    if (addresses && addresses.length > 0) {
+      // Xóa địa chỉ cũ của người dùng
+      await knex("Address").where({ user_id: userId }).del();
+
+      // Thêm địa chỉ mới
+      const addressEntries = addresses.map((address) => ({
+        user_id: userId,
+        address_line: address.addressLine,
+        city: address.city,
+        state: address.state,
+        postal_code: address.postalCode,
+        phone_number: address.phoneNumber,
+        type: address.type || "Home",
+      }));
+      await knex("Address").insert(addressEntries);
+    }
+
+    // Lấy lại thông tin người dùng sau khi cập nhật
+    return await getUserById(userId);
+  } catch (error) {
+    throw new Error("Cập nhật thông tin người dùng không thành công");
+  }
+};
+///
+
 module.exports = {
   login,
   signUp,
   getUserById,
+  ///
+  updateUser
+  ///
 };
