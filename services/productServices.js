@@ -81,14 +81,22 @@ const getProductById = async (productId) => {
 
     // Fetch all reviews for the product without is_approved condition
     const reviewsQuery = knex("Review as r")
-      .select("r.id", "r.rating", "r.title", "r.content", "r.created_at", "r.images", "r.video")
+      .select(
+        "r.id",
+        "r.rating",
+        "r.title",
+        "r.content",
+        "r.created_at",
+        "r.images",
+        "r.video"
+      )
       .where("r.product_id", productId)
       .orderBy("r.created_at", "desc");
 
     const reviews = await reviewsQuery;
 
-     let skusArray;
-    if (typeof product.skus === 'string') {
+    let skusArray;
+    if (typeof product.skus === "string") {
       skusArray = JSON.parse(product.skus); // Parse JSON string to array
     } else if (Array.isArray(product.skus)) {
       skusArray = product.skus; // Use directly if it's already an array
@@ -101,21 +109,20 @@ const getProductById = async (productId) => {
 
     // Filter and sort skus according to the size order
     const sortedSkus = skusArray
-      .filter(sku => sizeOrder.includes(sku.size)) // Keep only sizes S, M, L
+      .filter((sku) => sizeOrder.includes(sku.size)) // Keep only sizes S, M, L
       .sort((a, b) => sizeOrder.indexOf(a.size) - sizeOrder.indexOf(b.size)); // Sort by defined order
 
     // Combine product data and reviews
     return {
       ...product,
       skus: sortedSkus, // Include sorted SKUs
-      reviews: reviews,  // Include all reviews with details
+      reviews: reviews, // Include all reviews with details
     };
   } catch (error) {
     console.error("Error fetching product by id:", error.message);
     throw error;
   }
 };
-
 
 const getProductsByCategory = async (categoryId) => {
   console.log("categoryId", categoryId);
@@ -235,8 +242,6 @@ const getProductsByCategory = async (categoryId) => {
   }
 };
 
-
-
 const getAllProducts = async (limit = 10, offset = 0) => {
   try {
     const query = knex("Product as p")
@@ -296,7 +301,6 @@ const getAllProducts = async (limit = 10, offset = 0) => {
   }
 };
 
-
 const getBestsellerProducts = async (limit = 10, offset = 0) => {
   try {
     const query = knex("Product as p")
@@ -354,10 +358,68 @@ const getBestsellerProducts = async (limit = 10, offset = 0) => {
   }
 };
 
+//TOi can query cac san pham sku co gia la 199000
+
+const getProductsByPrice = async (min, max) => {
+  try {
+    const query = knex("Product as p")
+      .leftJoin("Category as c", "p.category_id", "c.id")
+      .leftJoin("Category as parent", "c.parent_id", "parent.id")
+      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+      .select(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name as category_name",
+        "parent.name as parent_category_name",
+        knex.raw("MIN(ps.price) as min_price"),
+        knex.raw("MAX(ps.price) as max_price"),
+        knex.raw("GROUP_CONCAT(DISTINCT ps.image) as images"),
+        knex.raw(`
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ps.id,
+              'sku', ps.sku,
+              'size', ps.size,
+              'color', ps.color,
+              'price', ps.price,
+              'quantity', ps.quantity,
+              'image', ps.image
+            )
+          ) as skus
+        `)
+      )
+      .whereNull("p.deleted_at")
+      .whereNull("ps.deleted_at")
+      .whereBetween("ps.price", [min, max])
+      .groupBy(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name",
+        "parent.name"
+      )
+      .orderBy("p.sold", "desc")
+
+    const productByPrice = await query;
+    return productByPrice;
+  } catch (error) {
+    console.error("Error fetching products:", error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   getProductsWithPaging,
   getProductById,
   getProductsByCategory,
   getAllProducts,
   getBestsellerProducts,
+  getProductsByPrice,
 };

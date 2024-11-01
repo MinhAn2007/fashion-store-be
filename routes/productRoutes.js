@@ -12,4 +12,6 @@ router.get('/products', productController.getAllProducts);
 
 router.get('/bestseller', productController.getBestsellerProducts);
 
+router.get('/getByPrice/:min/:max', productController.getProductsByPrice);
+
 module.exports = router;

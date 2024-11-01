@@ -90,9 +90,8 @@ CREATE TABLE `Order` (
     payment_id INT,
     coupon_id INT, -- Connection to coupon
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        delivery_at TIMESTAMP NULL DEFAULT NULL,
+    delivery_at TIMESTAMP NULL DEFAULT NULL,
     completed_at TIMESTAMP NULL DEFAULT NULL,
-
     canceled_at TIMESTAMP NULL DEFAULT NULL,
     return_at TIMESTAMP NULL DEFAULT NULL,
     address VARCHAR(255) NOT NULL,
