@@ -5,16 +5,16 @@ const getProductsWithPaging = async (limit, offset) => {
     const products = await knex("Product as p")
       .leftJoin("Products_Skus as ps", "p.id", "ps.product_id")
       .leftJoin("Product_Asset as pa", "p.id", "pa.product_id")
-      .leftJoin("Assets as a", "pa.asset_id", "a.id") 
+      .leftJoin("Assets as a", "pa.asset_id", "a.id")
       .select(
         "p.id",
         "p.name",
         knex.raw("MIN(ps.price) as price"),
         knex.raw(`JSON_ARRAYAGG(a.path) as cover`)
-      ) 
+      )
       .where("p.deleted_at", null)
       .groupBy("p.id", "p.name")
-      .having(knex.raw("COUNT(a.id) > 0")) 
+      .having(knex.raw("COUNT(a.id) > 0"))
       .limit(limit)
       .offset(offset);
     return products;
@@ -401,7 +401,7 @@ const getProductsByPrice = async (min, max) => {
         "c.name",
         "parent.name"
       )
-      .orderBy("p.sold", "desc")
+      .orderBy("p.sold", "desc");
 
     const productByPrice = await query;
     return productByPrice;
@@ -463,7 +463,7 @@ const getNewProducts = async () => {
     console.error("Error fetching new products:", error.message);
     throw error;
   }
-}
+};
 
 const getProductsByCollection = async (collection) => {
   console.log("collection", collection);
@@ -519,7 +519,60 @@ const getProductsByCollection = async (collection) => {
     console.error("Error fetching products by collection:", error.message);
     throw error;
   }
-}
+};
+
+const searchProducts = async (keyword) => {
+  try {
+    const products = await knex("Product as p")
+      .leftJoin("Category as c", "p.category_id", "c.id")
+      .leftJoin("Category as parent", "c.parent_id", "parent.id")
+      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+      .select(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name as category_name",
+        "parent.name as parent_category_name",
+        knex.raw("MIN(ps.price) as min_price"),
+        knex.raw("MAX(ps.price) as max_price"),
+        knex.raw("GROUP_CONCAT(DISTINCT ps.image) as images"),
+        knex.raw(`
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', ps.id,
+              'sku', ps.sku,
+              'size', ps.size,
+              'color', ps.color,
+              'price', ps.price,
+              'quantity', ps.quantity,
+              'image', ps.image
+            )
+          ) as skus
+        `)
+      )
+      .whereNull("p.deleted_at")
+      .whereNull("ps.deleted_at")
+      .where("p.name", "like", `%${keyword}%`)
+      .groupBy(
+        "p.id",
+        "p.name",
+        "p.description",
+        "p.sold",
+        "p.status",
+        "p.featured",
+        "c.name",
+        "parent.name"
+      )
+      .orderBy("p.created_at", "desc");
+    return products;
+  } catch (error) {
+    console.error("Error fetching products by keyword:", error.message);
+    throw error;
+  }
+};
 
 module.exports = {
   getProductsWithPaging,
@@ -530,4 +583,5 @@ module.exports = {
   getProductsByPrice,
   getNewProducts,
   getProductsByCollection,
+  searchProducts,
 };

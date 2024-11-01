@@ -18,4 +18,6 @@ router.get('/newProducts', productController.getNewProducts);
 
 router.get('/getByCollection/:collection', productController.getProductsByCollection);
 
+router.get('/search', productController.searchProducts);
+
 module.exports = router;
