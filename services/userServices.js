@@ -120,49 +120,89 @@ const getUserById = async (userId) => {
   }
 };
 
-///
 const updateUser = async (userId, { firstName, lastName, email, addresses }) => {
   try {
-    // Cập nhật thông tin cơ bản của người dùng
-    await knex("User")
-      .where({ id: userId })
-      .update({
-        first_name: firstName,
-        last_name: lastName,
-        email: email,
-      });
-
-    // Cập nhật địa chỉ nếu có
-    if (addresses && addresses.length > 0) {
-      // Xóa địa chỉ cũ của người dùng
-      await knex("Address").where({ user_id: userId }).del();
-
-      // Thêm địa chỉ mới
-      const addressEntries = addresses.map((address) => ({
-        user_id: userId,
-        address_line: address.addressLine,
-        city: address.city,
-        state: address.state,
-        postal_code: address.postalCode,
-        phone_number: address.phoneNumber,
-        type: address.type || "Home",
-      }));
-      await knex("Address").insert(addressEntries);
+    // Validate input data
+    if (!firstName || !lastName || !email) {
+      throw new Error("Thiếu thông tin bắt buộc");
     }
 
-    // Lấy lại thông tin người dùng sau khi cập nhật
-    return await getUserById(userId);
+    // Start transaction
+    const result = await knex.transaction(async (trx) => {
+      // 1. Cập nhật thông tin cơ bản của người dùng
+      await trx("User")
+        .where({ id: userId })
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+          email: email,
+          updated_at: knex.fn.now() // Cập nhật thời gian sửa đổi
+        });
+
+      // 2. Xử lý địa chỉ
+      if (Array.isArray(addresses)) {
+        // Xóa tất cả địa chỉ cũ
+        await trx("Address").where({ user_id: userId }).del();
+
+        // Thêm địa chỉ mới nếu có
+        if (addresses.length > 0) {
+          const addressEntries = addresses.map((address) => ({
+            user_id: userId,
+            address_line: address.addressLine,
+            city: address.city,
+            state: address.state,
+            country: address.country,
+            postal_code: address.postalCode,
+            phone_number: address.phoneNumber,
+            type: address.type || "home",
+            created_at: knex.fn.now(),
+            updated_at: knex.fn.now()
+          }));
+
+          await trx("Address").insert(addressEntries);
+        }
+      }
+
+      // 3. Lấy thông tin người dùng đã cập nhật
+      const user = await trx("User")
+        .where({ id: userId })
+        .first();
+
+      const updatedAddresses = await trx("Address")
+        .where({ user_id: userId })
+        .select();
+
+      return {
+        user,
+        addresses: updatedAddresses
+      };
+    });
+
+    return {
+      user: {
+        id: result.user.id,
+        firstName: result.user.first_name,
+        lastName: result.user.last_name,
+        email: result.user.email,
+      },
+      addresses: result.addresses.map(address => ({
+        addressLine: address.address_line,
+        city: address.city,
+        state: address.state,
+        country: address.country,
+        postalCode: address.postal_code,
+        phoneNumber: address.phone_number,
+        type: address.type,
+      })),
+    };
+
   } catch (error) {
-    throw new Error("Cập nhật thông tin người dùng không thành công");
+    throw new Error(`Cập nhật thông tin người dùng không thành công: ${error.message}`);
   }
 };
-///
-
 module.exports = {
   login,
   signUp,
   getUserById,
-  ///
   updateUser
-  ///
 };

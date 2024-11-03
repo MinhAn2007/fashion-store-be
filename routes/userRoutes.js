@@ -9,8 +9,6 @@ router.post('/signup', userController.signUp);
 
 router.get('/users/:id', verifyToken, userController.getUserInfo);
 
-///
 router.put('/users/me', verifyToken, userController.updateUserInfo);
-///
 
 module.exports = router;
