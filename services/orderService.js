@@ -78,9 +78,7 @@ const createOrder = async (
         .update({ quantity: newQuantity });
       await knex("Product")
         .where({ id: productSku.product_id })
-        .update({
-          sold: productSku.sold + item.quantity,
-        });
+        .update({ sold: +item.quantity });
     }
 
     // Clear cart after successful order
@@ -253,7 +251,12 @@ const getOrdersWithDetails = async (userId) => {
       orders.map(async (order) => {
         const items = await knex("OrderItem")
           .where({ order_id: order.id })
-          .join("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
+          .join(
+            "Products_skus",
+            "OrderItem.product_id",
+            "=",
+            "Products_skus.id"
+          )
           .join("Product", "Products_skus.product_id", "=", "Product.id")
           .select(
             "OrderItem.*",
@@ -284,11 +287,11 @@ const getOrdersWithDetails = async (userId) => {
         return {
           ...order,
           items: itemsWithAvailability,
-          isReview: Boolean(isReview),  
+          isReview: Boolean(isReview),
         };
       })
     );
-    
+
     const result = {
       complete: [],
       nonComplete: [],
@@ -357,9 +360,7 @@ const cancelOrder = async (orderId, cancellationReason) => {
           .where({ id: item.product_id })
           .update({ quantity: newQuantity });
       }
-      await knex("Product").update({
-        sold: productSku.sold - item.quantity,
-      });
+      await knex("Product").update({ sold: +item.quantity });
     }
 
     return {
