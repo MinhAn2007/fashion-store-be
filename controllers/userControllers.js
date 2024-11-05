@@ -1,6 +1,7 @@
 const userServices = require("../services/userServices");
 const knex = require("../config/database").db;
 
+
 // Controller đăng nhập
 const login = async (req, res) => {
   const { email, password } = req.body;
@@ -84,10 +85,22 @@ const updateUserInfo = async (req, res) => {
     });
   }
 };
+const deleteAddressController = async (req, res) => {
+  const userId = req.user.userId; // Lấy userId từ token đã xác thực
+  const { addressId } = req.params; // Lấy addressId từ tham số URL
 
+  try {
+    const result = await userServices.deleteAddress(userId, addressId);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error deleting address:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 module.exports = {
   login,
   getUserInfo,
   signUp,
-  updateUserInfo
+  updateUserInfo,
+  deleteAddressController
 };

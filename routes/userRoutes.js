@@ -11,4 +11,6 @@ router.get('/users/:id', verifyToken, userController.getUserInfo);
 
 router.put('/users/me', verifyToken, userController.updateUserInfo);
 
+router.delete('/users/me/addresses/:addressId', verifyToken, userController.deleteAddressController);
+
 module.exports = router;
