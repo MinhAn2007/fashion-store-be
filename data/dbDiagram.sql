@@ -100,19 +100,23 @@ CREATE TABLE `Order` (
     FOREIGN KEY (coupon_id) REFERENCES Coupon(id) ON DELETE SET NULL
 );
 
--- Table for managing order items (if an order or product is deleted, related order items will be deleted)
-CREATE TABLE OrderItem (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    order_id INT,
-    product_id INT,
-    name VARCHAR(255),
-    quantity INT,
-    price DECIMAL(10,2),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP DEFAULT NULL,
-    FOREIGN KEY (order_id) REFERENCES `Order`(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES Product(id) ON DELETE CASCADE
+-- `fashion-store`.OrderItem definition
+
+CREATE TABLE "OrderItem" (
+  "id" int NOT NULL AUTO_INCREMENT,
+  "order_id" int DEFAULT NULL,
+  "product_id" int DEFAULT NULL,
+  "name" varchar(255) DEFAULT NULL,
+  "quantity" int DEFAULT NULL,
+  "price" decimal(10,2) DEFAULT NULL,
+  "created_at" timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  "deleted_at" timestamp NULL DEFAULT NULL,
+  PRIMARY KEY ("id"),
+  KEY "order_id" ("order_id"),
+  KEY "OrderItem_FK" ("product_id"),
+  CONSTRAINT "OrderItem_FK" FOREIGN KEY ("product_id") REFERENCES "Products_skus" ("id"),
+  CONSTRAINT "OrderItem_ibfk_1" FOREIGN KEY ("order_id") REFERENCES "Order" ("id") ON DELETE CASCADE
 );
 
 -- Table for managing carts (if a user is deleted, their cart will be deleted)

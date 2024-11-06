@@ -2,7 +2,7 @@
 
 const express = require("express");
 const router = express.Router();
-const { createOrder , getOrdersWithDetails , cancelOrder, updateOrderStatus, returnOrder, getOrderDashboard} = require("../controllers/orderControllers");
+const { createOrder , getOrdersWithDetails , cancelOrder, updateOrderStatus, returnOrder, getOrderDashboardTotal, getDashboardDetails} = require("../controllers/orderControllers");
 
 // Route để tạo đơn hàng
 router.post("/orders", createOrder);
@@ -15,5 +15,8 @@ router.put("/orders/:id", updateOrderStatus);
 
 router.post("/orders/:id/return", returnOrder);
 
-router.get("/orders/dashboard", getOrderDashboard);
+router.get("/orders/dashboard/total", getOrderDashboardTotal);
+
+router.get("/orders/dashboard/details", getDashboardDetails);
+
 module.exports = router;

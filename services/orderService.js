@@ -441,7 +441,56 @@ const returnOrder = async (orderId, returnReason) => {
   }
 };
 
-const getOrderDashboard = async () => {
+const getDashboardDetails = async () => {
+  return await knex.transaction(async (trx) => {
+    const monthlyRevenue = await trx
+      .select(
+        knex.raw("DATE_FORMAT(o.created_at, '%Y-%m') AS month"),
+        knex.raw("SUM(oi.quantity * oi.price) AS total_revenue")
+      )
+      .from("Order as o")
+      .join("OrderItem as oi", "o.id", "=", "oi.order_id")
+      .where("o.status", "Completed")
+      .groupBy(knex.raw("DATE_FORMAT(o.created_at, '%Y-%m')"))
+      .orderBy("month");
+
+      const monthlyQuantity = await trx
+      .select(
+        "c.name as category_name",
+        "c.id as id",
+        "c.parent_id as parent_id",
+        knex.raw("SUM(p.sold) AS total_sold")
+      )
+      .from("Category as c")
+      .leftJoin("Product as p", "c.id", "=", "p.category_id")
+      .groupBy("c.id")
+      .orderByRaw("total_sold DESC");
+    
+      console.log(monthlyQuantity);
+      
+
+    const bestSellingProducts = await trx
+      .select(
+        "p.name AS product_name",
+        knex.raw("SUM(oi.quantity) AS total_quantity_sold")
+      )
+      .from("OrderItem as oi")
+      .join("Product as p", "oi.product_id", "=", "p.id")
+      .join("Order as o", "oi.order_id", "=", "o.id")
+      .where("o.status", "Completed")
+      .groupBy("p.id")
+      .orderBy("total_quantity_sold", "desc")
+      .limit(4);
+
+    return {
+      monthlyRevenue,
+      monthlyQuantity,
+      bestSellingProducts,
+    };
+  });
+};
+
+const getDashboardTotals = async () => {
   try {
     const totalSales = await knex("Order")
       .where({ status: "Completed" })
@@ -456,82 +505,14 @@ const getOrderDashboard = async () => {
 
     const totalOrders = await knex("Order").count("id as totalOrders").first();
 
-    const monthlyRevenue = await knex("Order")
-      .select(
-        knex.raw("MONTH(created_at) as month"),
-        knex.raw("SUM(total) as revenue")
-      )
-      .where({ status: "Completed" })
-      .groupByRaw("MONTH(created_at)")
-      .orderBy("month", "asc");
-
-    const lineData = monthlyRevenue.map((item) => ({
-      month: item.month,
-      revenue: item.revenue,
-    }));
-
-    const productSalesData = await knex("Product")
-      .join("Category", "Product.category_id", "=", "Category.id")
-      .select(
-        knex.raw("COALESCE(Category.parent_id, Category.id) as category_id"),
-        knex.raw("SUM(Product.sold) as sales"),
-        "Category.name as name"
-      )
-      .where("Category.parent_id", null)
-      .groupByRaw("COALESCE(Category.parent_id, Category.id), Category.name")
-      .orderBy("sales", "desc");
-
-    const barData = productSalesData.map((item) => ({
-      product: item.name,
-      sales: item.sales,
-    }));
-
-    const monthlyOrders = await knex("Order")
-      .select(
-        knex.raw("MONTH(created_at) as month"),
-        knex.raw("COUNT(id) as orders")
-      )
-      .where({ status: "Completed" })
-      .groupByRaw("MONTH(created_at)")
-      .orderBy("month", "asc");
-
-    const orderData = monthlyOrders.map((item) => ({
-      month: item.month,
-      orders: item.orders,
-    }));
-
-    const bestSellingProducts = await knex("Product")
-      .select("id", "name", "sold")
-      .orderBy("sold", "desc")
-      .limit(4);
-
-    const bestSellingProductsData = await Promise.all(
-      bestSellingProducts.map(async (item) => {
-        const avgRating = await knex("Review")
-          .avg("rating as avgRating")
-          .where({ product_id: item.id })
-          .first();
-
-        return {
-          name: item.name,
-          sold: item.sold,
-          avgRating: avgRating.avgRating || 0,
-        };
-      })
-    );
-
     return {
       totalSales: totalSales.totalSales || 0,
       productsSold: productsSold.productsSold || 0,
       newCustomers: newCustomers.newCustomers || 0,
       totalOrders: totalOrders.totalOrders || 0,
-      lineData,
-      barData,
-      orderData,
-      bestSellingProductsData,
     };
   } catch (error) {
-    console.error("Error getting order dashboard:", error);
+    console.error("Error getting dashboard totals:", error);
     throw new Error(error.message);
   }
 };
@@ -542,5 +523,6 @@ module.exports = {
   cancelOrder,
   updateOrderStatus,
   returnOrder,
-  getOrderDashboard,
+  getDashboardTotals,
+  getDashboardDetails,
 };
