@@ -108,10 +108,28 @@ const returnOrder = async (req, res) => {
   }
 };
 
+const getOrderDashboard = async (req, res) => {
+  try {
+    const time = req.query.time;
+    const orders = await OrderService.getOrderDashboard(time);
+    res.status(200).json({
+      success: true,
+      data: orders,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin đơn hàng:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
   cancelOrder,
   updateOrderStatus,
   returnOrder,
+  getOrderDashboard,
 };

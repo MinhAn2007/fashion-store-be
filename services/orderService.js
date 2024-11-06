@@ -11,17 +11,22 @@ const createOrder = async (
   couponId,
   total
 ) => {
+  const trx = await knex.transaction(); // Bắt đầu giao dịch
+
   try {
     // Get user information
-    const user = await knex("User").where({ id: userId }).first();
+    const user = await trx("User").where({ id: userId }).first();
     console.log("user", user);
 
     if (!user) {
       throw new Error("Người dùng không tồn tại");
     }
+
+    // Remove items from cart
     for (const item of cartItems) {
-      await cartService.removeCartItem(userId, item.id);
+      await cartService.removeCartItem(userId, item.id, trx); // Cần truyền trx vào nếu hàm này hỗ trợ giao dịch
     }
+
     // Create order first to get the order ID
     const orderInsert = {
       address: selectedAddress,
@@ -34,13 +39,13 @@ const createOrder = async (
       total,
     };
 
-    // Tạo đơn hàng
-    const order = await knex("Order").insert(orderInsert).returning("*");
+    // Insert order
+    const [order] = await trx("Order").insert(orderInsert).returning("*");
 
     const orderItems = [];
     // Process cart items and update inventory
     for (const item of cartItems) {
-      const productSku = await knex("Products_skus")
+      const productSku = await trx("Products_skus")
         .select("Products_skus.*", "Product.name as product_name")
         .join("Product", "Products_skus.product_id", "=", "Product.id")
         .where("Products_skus.id", item.id)
@@ -60,8 +65,8 @@ const createOrder = async (
       });
 
       // Insert order item
-      await knex("OrderItem").insert({
-        order_id: order,
+      await trx("OrderItem").insert({
+        order_id: order.id,
         product_id: productSku.id,
         name: productSku.sku,
         quantity: item.quantity,
@@ -73,16 +78,22 @@ const createOrder = async (
       if (newQuantity < 0) {
         throw new Error(`Sản phẩm ${productSku.product_name} đã hết hàng`);
       }
-      await knex("Products_skus")
+      await trx("Products_skus")
         .where({ id: item.id })
         .update({ quantity: newQuantity });
-      await knex("Product")
+      console.log("productSku", productSku.sold);
+      console.log("item", item.quantity);
+
+      await trx("Product")
         .where({ id: productSku.product_id })
-        .update({ sold: +item.quantity });
+        .increment("sold", item.quantity);
     }
 
     // Clear cart after successful order
-    await knex("CartItem").where({ cart_id: userId }).del();
+    await trx("CartItem").where({ cart_id: userId }).del();
+
+    // Commit the transaction
+    await trx.commit();
 
     // Format the date
     const orderDate = new Date().toLocaleString("vi-VN", {
@@ -160,7 +171,7 @@ const createOrder = async (
       <div class="container">
         <div class="header">
           <h2>Xác nhận đơn hàng từ A&L Shop</h2>
-          <p>Mã đơn hàng: #${order}</p>
+          <p>Mã đơn hàng: #${order.id}</p>
         </div>
         
         <p>Chào ${user.first_name} ${user.last_name},</p>
@@ -187,7 +198,7 @@ const createOrder = async (
           <tbody>
             ${orderItems
               .map(
-                (item) => `
+                (item) => `  
               <tr>
                 <td>${item.name}</td>
                 <td>${item.quantity}</td>
@@ -235,6 +246,7 @@ const createOrder = async (
       message: "Đặt hàng thành công",
     };
   } catch (error) {
+    await trx.rollback(); // Rollback giao dịch nếu có lỗi
     console.error("Error creating order:", error);
     throw new Error(error.message);
   }
@@ -429,10 +441,106 @@ const returnOrder = async (orderId, returnReason) => {
   }
 };
 
+const getOrderDashboard = async () => {
+  try {
+    const totalSales = await knex("Order")
+      .where({ status: "Completed" })
+      .sum("total as totalSales")
+      .first();
+
+    const productsSold = await knex("Product")
+      .sum("sold as productsSold")
+      .first();
+
+    const newCustomers = await knex("User").count("id as newCustomers").first();
+
+    const totalOrders = await knex("Order").count("id as totalOrders").first();
+
+    const monthlyRevenue = await knex("Order")
+      .select(
+        knex.raw("MONTH(created_at) as month"),
+        knex.raw("SUM(total) as revenue")
+      )
+      .where({ status: "Completed" })
+      .groupByRaw("MONTH(created_at)")
+      .orderBy("month", "asc");
+
+    const lineData = monthlyRevenue.map((item) => ({
+      month: item.month,
+      revenue: item.revenue,
+    }));
+
+    const productSalesData = await knex("Product")
+      .join("Category", "Product.category_id", "=", "Category.id")
+      .select(
+        knex.raw("COALESCE(Category.parent_id, Category.id) as category_id"),
+        knex.raw("SUM(Product.sold) as sales"),
+        "Category.name as name"
+      )
+      .where("Category.parent_id", null)
+      .groupByRaw("COALESCE(Category.parent_id, Category.id), Category.name")
+      .orderBy("sales", "desc");
+
+    const barData = productSalesData.map((item) => ({
+      product: item.name,
+      sales: item.sales,
+    }));
+
+    const monthlyOrders = await knex("Order")
+      .select(
+        knex.raw("MONTH(created_at) as month"),
+        knex.raw("COUNT(id) as orders")
+      )
+      .where({ status: "Completed" })
+      .groupByRaw("MONTH(created_at)")
+      .orderBy("month", "asc");
+
+    const orderData = monthlyOrders.map((item) => ({
+      month: item.month,
+      orders: item.orders,
+    }));
+
+    const bestSellingProducts = await knex("Product")
+      .select("id", "name", "sold")
+      .orderBy("sold", "desc")
+      .limit(4);
+
+    const bestSellingProductsData = await Promise.all(
+      bestSellingProducts.map(async (item) => {
+        const avgRating = await knex("Review")
+          .avg("rating as avgRating")
+          .where({ product_id: item.id })
+          .first();
+
+        return {
+          name: item.name,
+          sold: item.sold,
+          avgRating: avgRating.avgRating || 0,
+        };
+      })
+    );
+
+    return {
+      totalSales: totalSales.totalSales || 0,
+      productsSold: productsSold.productsSold || 0,
+      newCustomers: newCustomers.newCustomers || 0,
+      totalOrders: totalOrders.totalOrders || 0,
+      lineData,
+      barData,
+      orderData,
+      bestSellingProductsData,
+    };
+  } catch (error) {
+    console.error("Error getting order dashboard:", error);
+    throw new Error(error.message);
+  }
+};
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
   cancelOrder,
   updateOrderStatus,
   returnOrder,
+  getOrderDashboard,
 };
