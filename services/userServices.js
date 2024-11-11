@@ -219,41 +219,37 @@ const getAllUsers = async ({ page, limit, search, sortBy, sortOrder }) => {
   try {
     const offset = (page - 1) * limit;
 
-    let query = knex('User').select(
-      'id',
-      'first_name',
-      'last_name',
-      'email',
-      'created_at'
-    );
-
-    if (search) {
-      query = query.where(function () {
-        this.where('first_name', 'ilike', `%${search}%`)
-          .orWhere('last_name', 'ilike', `%${search}%`)
-          .orWhere('email', 'ilike', `%${search}%`);
-      });
-    }
-
-    const totalResult = await query.clone().count('* as count').first();
-    const totalCount = parseInt(totalResult.count, 10);
-
-    const users = await query
+    // Truy vấn lấy danh sách người dùng
+    const usersQuery = knex('User')
+      .select('id', 'first_name', 'last_name', 'email', 'created_at')
+      .where(function () {
+        this.where('first_name', 'like', `%${search}%`)
+          .orWhere('last_name', 'like', `%${search}%`)
+          .orWhere('email', 'like', `%${search}%`);
+      })
       .orderBy(sortBy, sortOrder)
       .limit(limit)
       .offset(offset);
 
-    const totalPages = Math.ceil(totalCount / limit);
+    // Truy vấn đếm tổng số người dùng
+    const countQuery = knex('User')
+      .count('id as count')
+      .where(function () {
+        this.where('first_name', 'like', `%${search}%`)
+          .orWhere('last_name', 'like', `%${search}%`)
+          .orWhere('email', 'like', `%${search}%`);
+      })
+      .first();
+
+    // Thực hiện cả hai truy vấn song song
+    const [users, countResult] = await Promise.all([usersQuery, countQuery]);
+
+    const total = parseInt(countResult.count, 10);
+    const totalPages = Math.ceil(total / limit);
 
     return {
-      users: users.map((user) => ({
-        id: user.id,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        email: user.email,
-        createdAt: user.created_at,
-      })),
-      total: totalCount,
+      users,
+      total,
       totalPages,
       currentPage: page,
     };
@@ -265,39 +261,35 @@ const getAllUsers = async ({ page, limit, search, sortBy, sortOrder }) => {
 
 const getUserStats = async () => {
   try {
-    // Tổng số khách hàng
-    const totalUsersResult = await knex('User').count('* as count').first();
+    // Tổng số người dùng
+    const totalUsersResult = await knex('User').count('id as count').first();
     const totalUsers = parseInt(totalUsersResult.count, 10);
 
-    // Số khách hàng mới trong tháng hiện tại
-    const currentMonth = new Date().getMonth() + 1;
+    // Số người dùng mới trong tháng này
+    const currentMonth = new Date().getMonth() + 1; // Tháng hiện tại
     const currentYear = new Date().getFullYear();
 
-    const newUsersResult = await knex('User')
-      .whereRaw('EXTRACT(MONTH FROM created_at) = ?', [currentMonth])
-      .andWhereRaw('EXTRACT(YEAR FROM created_at) = ?', [currentYear])
-      .count('* as count')
+    const newUsersThisMonthResult = await knex('User')
+      .whereRaw('MONTH(created_at) = ? AND YEAR(created_at) = ?', [currentMonth, currentYear])
+      .count('id as count')
       .first();
 
-    const newUsersThisMonth = parseInt(newUsersResult.count, 10);
+    const newUsersThisMonth = parseInt(newUsersThisMonthResult.count, 10);
 
-    // Số khách hàng mới theo tháng trong năm hiện tại
-    const usersByMonth = await knex('User')
-      .select(
-        knex.raw('EXTRACT(MONTH FROM created_at) as month'),
-        knex.raw('COUNT(*) as count')
-      )
-      .whereRaw('EXTRACT(YEAR FROM created_at) = ?', [currentYear])
-      .groupBy('month')
-      .orderBy('month');
+    // Thống kê số người dùng mới theo tháng
+    const monthlyNewUsers = [];
 
-    const monthlyNewUsers = Array.from({ length: 12 }, (_, i) => {
-      const monthData = usersByMonth.find((item) => item.month === i + 1);
-      return {
-        month: `Tháng ${i + 1}`,
-        newUsers: monthData ? parseInt(monthData.count, 10) : 0,
-      };
-    });
+    for (let month = 1; month <= 12; month++) {
+      const monthlyResult = await knex('User')
+        .whereRaw('MONTH(created_at) = ? AND YEAR(created_at) = ?', [month, currentYear])
+        .count('id as count')
+        .first();
+
+      monthlyNewUsers.push({
+        month: `Tháng ${month}`,
+        newUsers: parseInt(monthlyResult.count, 10),
+      });
+    }
 
     return {
       totalUsers,
@@ -309,7 +301,6 @@ const getUserStats = async () => {
     throw new Error('Không thể lấy thống kê người dùng');
   }
 };
-
 
 
 module.exports = {

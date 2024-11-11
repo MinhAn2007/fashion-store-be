@@ -15,9 +15,11 @@ router.delete('/users/me/addresses/:addressId', verifyToken, userController.dele
 
 //Admin
 // Lấy danh sách khách hàng với phân trang, tìm kiếm, sắp xếp
-router.get('/users', verifyToken, userController.getAllUsers);
+// router.get('/users', verifyToken, userController.getAllUsers);
+router.get('/users', userController.getAllUsers);
 
 // Lấy thống kê khách hàng
-router.get('/users/stats', verifyToken, userController.getUserStats);
+// router.get('/users/stats', verifyToken, userController.getUserStats);
+router.get('/users/stats', userController.getUserStats);
 
 module.exports = router;

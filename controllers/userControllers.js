@@ -99,6 +99,8 @@ const deleteAddressController = async (req, res) => {
 };
 
 //Admin
+// userController.js
+
 const getAllUsers = async (req, res) => {
   try {
     const {
@@ -119,16 +121,17 @@ const getAllUsers = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: result.users,
+      users: result.users,
       total: result.total,
       totalPages: result.totalPages,
       currentPage: result.currentPage,
     });
   } catch (error) {
     console.error('Error fetching users:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Không thể lấy danh sách người dùng' });
   }
 };
+
 
 const getUserStats = async (req, res) => {
   try {
@@ -136,11 +139,13 @@ const getUserStats = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: stats,
+      totalUsers: stats.totalUsers,
+      newUsersThisMonth: stats.newUsersThisMonth,
+      monthlyNewUsers: stats.monthlyNewUsers,
     });
   } catch (error) {
     console.error('Error fetching user stats:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Không thể lấy thống kê người dùng' });
   }
 };
 
