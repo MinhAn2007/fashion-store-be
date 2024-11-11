@@ -13,4 +13,11 @@ router.put('/users/me', verifyToken, userController.updateUserInfo);
 
 router.delete('/users/me/addresses/:addressId', verifyToken, userController.deleteAddressController);
 
+//Admin
+// Lấy danh sách khách hàng với phân trang, tìm kiếm, sắp xếp
+router.get('/users', verifyToken, userController.getAllUsers);
+
+// Lấy thống kê khách hàng
+router.get('/users/stats', verifyToken, userController.getUserStats);
+
 module.exports = router;

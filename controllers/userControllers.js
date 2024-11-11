@@ -97,10 +97,59 @@ const deleteAddressController = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+//Admin
+const getAllUsers = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      sortBy = 'created_at',
+      sortOrder = 'desc',
+    } = req.query;
+
+    const result = await userServices.getAllUsers({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      search,
+      sortBy,
+      sortOrder,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result.users,
+      total: result.total,
+      totalPages: result.totalPages,
+      currentPage: result.currentPage,
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getUserStats = async (req, res) => {
+  try {
+    const stats = await userServices.getUserStats();
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    console.error('Error fetching user stats:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   login,
   getUserInfo,
   signUp,
   updateUserInfo,
-  deleteAddressController
+  deleteAddressController,
+  getAllUsers,
+  getUserStats
 };
