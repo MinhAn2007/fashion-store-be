@@ -263,6 +263,54 @@ const getAllUsers = async ({ page, limit, search, sortBy, sortOrder }) => {
   }
 };
 
+const getUserStats = async () => {
+  try {
+    // Tổng số khách hàng
+    const totalUsersResult = await knex('User').count('* as count').first();
+    const totalUsers = parseInt(totalUsersResult.count, 10);
+
+    // Số khách hàng mới trong tháng hiện tại
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+
+    const newUsersResult = await knex('User')
+      .whereRaw('EXTRACT(MONTH FROM created_at) = ?', [currentMonth])
+      .andWhereRaw('EXTRACT(YEAR FROM created_at) = ?', [currentYear])
+      .count('* as count')
+      .first();
+
+    const newUsersThisMonth = parseInt(newUsersResult.count, 10);
+
+    // Số khách hàng mới theo tháng trong năm hiện tại
+    const usersByMonth = await knex('User')
+      .select(
+        knex.raw('EXTRACT(MONTH FROM created_at) as month'),
+        knex.raw('COUNT(*) as count')
+      )
+      .whereRaw('EXTRACT(YEAR FROM created_at) = ?', [currentYear])
+      .groupBy('month')
+      .orderBy('month');
+
+    const monthlyNewUsers = Array.from({ length: 12 }, (_, i) => {
+      const monthData = usersByMonth.find((item) => item.month === i + 1);
+      return {
+        month: `Tháng ${i + 1}`,
+        newUsers: monthData ? parseInt(monthData.count, 10) : 0,
+      };
+    });
+
+    return {
+      totalUsers,
+      newUsersThisMonth,
+      monthlyNewUsers,
+    };
+  } catch (error) {
+    console.error('Error in getUserStats:', error.message);
+    throw new Error('Không thể lấy thống kê người dùng');
+  }
+};
+
+
 
 module.exports = {
   login,
@@ -270,5 +318,6 @@ module.exports = {
   getUserById,
   updateUser,
   deleteAddress,
-  getAllUsers
+  getAllUsers,
+  getUserStats
 };
