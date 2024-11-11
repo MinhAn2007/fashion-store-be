@@ -103,17 +103,29 @@ const deleteAddressController = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
+    let {
+      page = '1',
+      limit = '10',
       search = '',
       sortBy = 'created_at',
       sortOrder = 'desc',
     } = req.query;
 
+    // Chuyển đổi sang số nguyên
+    page = parseInt(page, 10);
+    limit = parseInt(limit, 10);
+
+    // Kiểm tra và gán giá trị mặc định nếu không hợp lệ
+    if (isNaN(page) || page < 1) {
+      page = 1;
+    }
+    if (isNaN(limit) || limit < 1) {
+      limit = 10;
+    }
+
     const result = await userServices.getAllUsers({
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page,
+      limit,
       search,
       sortBy,
       sortOrder,
@@ -131,6 +143,7 @@ const getAllUsers = async (req, res) => {
     res.status(500).json({ success: false, message: 'Không thể lấy danh sách người dùng' });
   }
 };
+
 
 
 const getUserStats = async (req, res) => {

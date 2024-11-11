@@ -217,7 +217,18 @@ const deleteAddress = async (userId, addressId) => {
 //Admin
 const getAllUsers = async ({ page, limit, search, sortBy, sortOrder }) => {
   try {
+    // Kiểm tra và gán giá trị mặc định nếu không hợp lệ
+    if (!Number.isInteger(page) || page < 1) {
+      page = 1;
+    }
+    if (!Number.isInteger(limit) || limit < 1) {
+      limit = 10;
+    }
+
     const offset = (page - 1) * limit;
+
+    // In ra để kiểm tra
+    console.log(`Page: ${page}, Limit: ${limit}, Offset: ${offset}`);
 
     // Truy vấn lấy danh sách người dùng
     const usersQuery = knex('User')
@@ -259,6 +270,7 @@ const getAllUsers = async ({ page, limit, search, sortBy, sortOrder }) => {
   }
 };
 
+
 const getUserStats = async () => {
   try {
     // Tổng số người dùng
@@ -266,7 +278,7 @@ const getUserStats = async () => {
     const totalUsers = parseInt(totalUsersResult.count, 10);
 
     // Số người dùng mới trong tháng này
-    const currentMonth = new Date().getMonth() + 1; // Tháng hiện tại
+    const currentMonth = new Date().getMonth() + 1; // Tháng hiện tại (từ 1 đến 12)
     const currentYear = new Date().getFullYear();
 
     const newUsersThisMonthResult = await knex('User')
