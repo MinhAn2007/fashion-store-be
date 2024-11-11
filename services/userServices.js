@@ -214,10 +214,61 @@ const deleteAddress = async (userId, addressId) => {
   }
 };
 
+//Admin
+const getAllUsers = async ({ page, limit, search, sortBy, sortOrder }) => {
+  try {
+    const offset = (page - 1) * limit;
+
+    let query = knex('User').select(
+      'id',
+      'first_name',
+      'last_name',
+      'email',
+      'created_at'
+    );
+
+    if (search) {
+      query = query.where(function () {
+        this.where('first_name', 'ilike', `%${search}%`)
+          .orWhere('last_name', 'ilike', `%${search}%`)
+          .orWhere('email', 'ilike', `%${search}%`);
+      });
+    }
+
+    const totalResult = await query.clone().count('* as count').first();
+    const totalCount = parseInt(totalResult.count, 10);
+
+    const users = await query
+      .orderBy(sortBy, sortOrder)
+      .limit(limit)
+      .offset(offset);
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return {
+      users: users.map((user) => ({
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+        createdAt: user.created_at,
+      })),
+      total: totalCount,
+      totalPages,
+      currentPage: page,
+    };
+  } catch (error) {
+    console.error('Error in getAllUsers:', error.message);
+    throw new Error('Không thể lấy danh sách người dùng');
+  }
+};
+
+
 module.exports = {
   login,
   signUp,
   getUserById,
   updateUser,
-  deleteAddress
+  deleteAddress,
+  getAllUsers
 };
