@@ -20,4 +20,10 @@ router.get('/getByCollection/:collection', productController.getProductsByCollec
 
 router.get('/search', productController.searchProducts);
 
+router.get('/inventoryStats', productController.getInventoryStats);
+
+router.get('/productStats', productController.getProductStats);
+
+router.get('/productRevenueStats', productController.getProductRevenueStats);
+
 module.exports = router;

@@ -574,6 +574,179 @@ const searchProducts = async (keyword) => {
   }
 };
 
+const getProductStats = async (timeRange) => {
+  try {
+    let startDate, endDate;
+    const currentDate = new Date();
+    
+    switch (timeRange) {
+      case 'week':
+        startDate = new Date(currentDate.setDate(currentDate.getDate() - 7));
+        break;
+      case 'month':
+        startDate = new Date(currentDate.setMonth(currentDate.getMonth() - 1));
+        break;
+      case 'year':
+        startDate = new Date(currentDate.setFullYear(currentDate.getFullYear() - 1));
+        break;
+      case 'first_6_months':
+        startDate = new Date(currentDate.getFullYear(), 0, 1); // 1st Jan current year
+        endDate = new Date(currentDate.getFullYear(), 5, 30); // 30th June current year
+        break;
+      default:
+        startDate = new Date(0); // Từ đầu
+        endDate = new Date(); // Đến hiện tại
+    }
+
+    // Query để lấy thống kê tổng quan
+    const statsQuery = knex("OrderItem as oi")
+      .join("Product as p", "oi.product_id", "p.id")
+      .join("Order as o", "oi.order_id", "o.id")
+      .select(
+        knex.raw("SUM(oi.quantity) as total_sales"),
+        knex.raw("SUM(oi.quantity * oi.price) as total_revenue"),
+        knex.raw("COUNT(DISTINCT p.id) as total_products")
+      )
+      .where("o.status", "completed")
+      .whereBetween("o.created_at", [startDate, endDate || new Date()]);
+
+    // Query để lấy top sản phẩm bán chạy
+    const topProductsQuery = knex("OrderItem as oi")
+      .join("Product as p", "oi.product_id", "p.id")
+      .join("Order as o", "oi.order_id", "o.id")
+      .select(
+        "p.id",
+        "p.name",
+        knex.raw("SUM(oi.quantity) as sales"),
+        knex.raw("SUM(oi.quantity * oi.price) as revenue")
+      )
+      .where("o.status", "completed")
+      .whereBetween("o.created_at", [startDate, endDate || new Date()])
+      .groupBy("p.id", "p.name")
+      .orderBy("sales", "desc")
+      .limit(5);
+
+    // Query để lấy doanh số theo thời gian
+    const salesByTimeQuery = knex("OrderItem as oi")
+      .join("Order as o", "oi.order_id", "o.id")
+      .select(
+        knex.raw("DATE_FORMAT(o.created_at, '%Y-%m') as period"),
+        knex.raw("SUM(oi.quantity) as total_quantity"),
+        knex.raw("SUM(oi.quantity * oi.price) as total_revenue")
+      )
+      .where("o.status", "completed")
+      .whereBetween("o.created_at", [startDate, endDate || new Date()])
+      .groupBy(knex.raw("DATE_FORMAT(o.created_at, '%Y-%m')"))
+      .orderBy("period", "asc");
+
+    // Thực hiện tất cả các queries cùng lúc
+    const [stats, topProducts, salesByTime] = await Promise.all([
+      statsQuery.first(),
+      topProductsQuery,
+      salesByTimeQuery
+    ]);
+
+    return {
+      summary: stats,
+      topProducts,
+      salesByTime
+    };
+  } catch (error) {
+    console.error("Error fetching product statistics:", error.message);
+    throw error;
+  }
+};
+
+const getInventoryStats = async () => {
+  try {
+    // Query lấy thống kê tồn kho
+    const inventoryStats = await knex("Products_skus as ps")
+      .join("Product as p", "ps.product_id", "p.id")
+      .select(
+        "p.id",
+        "p.name",
+        knex.raw("SUM(ps.quantity) as total_stock"),
+        knex.raw("GROUP_CONCAT(DISTINCT ps.size) as sizes"),
+        knex.raw("COUNT(DISTINCT ps.color) as color_variants")
+      )
+      .whereNull("p.deleted_at")
+      .groupBy("p.id", "p.name")
+      .orderBy("total_stock", "desc")
+      .limit(10);
+
+    // Query lấy sản phẩm sắp hết hàng (dưới 10 items)
+    const lowStockProducts = await knex("Products_skus as ps")
+      .join("Product as p", "ps.product_id", "p.id")
+      .select(
+        "p.id",
+        "p.name",
+        "ps.size",
+        "ps.color",
+        "ps.quantity"
+      )
+      .whereNull("p.deleted_at")
+      .where("ps.quantity", "<", 10)
+      .orderBy("ps.quantity", "asc");
+
+    return {
+      inventoryStats,
+      lowStockProducts
+    };
+  } catch (error) {
+    console.error("Error fetching inventory statistics:", error.message);
+    throw error;
+  }
+};
+
+const getProductRevenueStats = async (timeRange) => {
+  try {
+    let startDate, endDate;
+    const currentDate = new Date();
+    
+    // Xử lý timeRange tương tự như getProductStats
+    switch (timeRange) {
+      case 'week':
+        startDate = new Date(currentDate.setDate(currentDate.getDate() - 7));
+        break;
+      case 'month':
+        startDate = new Date(currentDate.setMonth(currentDate.getMonth() - 1));
+        break;
+      case 'year':
+        startDate = new Date(currentDate.setFullYear(currentDate.getFullYear() - 1));
+        break;
+      case 'first_6_months':
+        startDate = new Date(currentDate.getFullYear(), 0, 1);
+        endDate = new Date(currentDate.getFullYear(), 5, 30);
+        break;
+      default:
+        startDate = new Date(0);
+        endDate = new Date();
+    }
+
+    const revenueStats = await knex("OrderItem as oi")
+      .join("Product as p", "oi.product_id", "p.id")
+      .join("Order as o", "oi.order_id", "o.id")
+      .select(
+        "p.id",
+        "p.name",
+        knex.raw("SUM(oi.quantity) as total_sales"),
+        knex.raw("SUM(oi.quantity * oi.price) as total_revenue"),
+        knex.raw("AVG(oi.price) as average_price")
+      )
+      .where("o.status", "completed")
+      .whereBetween("o.created_at", [startDate, endDate || new Date()])
+      .groupBy("p.id", "p.name")
+      .orderBy("total_revenue", "desc");
+
+    return revenueStats;
+  } catch (error) {
+    console.error("Error fetching product revenue statistics:", error.message);
+    throw error;
+  }
+};
+
+
+
 module.exports = {
   getProductsWithPaging,
   getProductById,
@@ -584,4 +757,7 @@ module.exports = {
   getNewProducts,
   getProductsByCollection,
   searchProducts,
+  getProductStats,
+  getInventoryStats,
+  getProductRevenueStats
 };

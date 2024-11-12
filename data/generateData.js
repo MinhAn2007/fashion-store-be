@@ -258,7 +258,7 @@ Promise.all([
     writeCSV('users.csv', users),
     writeCSV('addresses.csv', addresses),
     writeCSV('orders.csv', orders),
-    writeCSV('order_items.csv', orderItems),
+    writeCSV('OrderItem.csv', orderItems),
     writeCSV('coupons.csv', coupons),
     writeCSV('carts.csv', carts),
     writeCSV('cart_items.csv', cartItems),

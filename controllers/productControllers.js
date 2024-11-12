@@ -198,6 +198,39 @@ const searchProducts = async (req, res) => {
   }
 };
 
+const getInventoryStats = async (req, res) => {
+  try {
+    const inventoryStats = await productService.getInventoryStats();
+
+    res.status(200).json(inventoryStats);
+  } catch (error) {
+    console.error("Error fetching inventory stats:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+const getProductStats = async (req, res) => {
+  try {
+    const productStats = await productService.getProductStats();
+
+    res.status(200).json(productStats);
+  } catch (error) {
+    console.error("Error fetching product stats:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
+const getProductRevenueStats = async (req, res) => {
+  try {
+    const productRevenueStats = await productService.getProductRevenueStats();
+
+    res.status(200).json(productRevenueStats);
+  } catch (error) {
+    console.error("Error fetching product revenue stats:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
 module.exports = {
   getProductsByPrice,
   getProductsWithPaging,
@@ -207,5 +240,8 @@ module.exports = {
   getBestsellerProducts,
   getNewProducts,
   getProductsByCollection,
-  searchProducts
+  searchProducts,
+  getInventoryStats,
+  getProductStats,
+  getProductRevenueStats
 };
