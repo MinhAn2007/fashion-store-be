@@ -152,11 +152,27 @@ const getReviewStatistics = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+//history
+const getMonthlyReviewStatistics = async (req, res) => {
+  try {
+    const monthlyReviews = await reviewService.getMonthlyReviewStatistics();
+    res.json({
+      success: true,
+      monthlyReviews,
+    });
+  } catch (error) {
+    console.error("Error fetching monthly review statistics:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
 
 module.exports = {
   getReviewsByUserId,
   reviewProduct,
   uploadAvatarS3,
   getReviewByOrderId,
-  getReviewStatistics
+  getReviewStatistics,
+  getMonthlyReviewStatistics
 };
