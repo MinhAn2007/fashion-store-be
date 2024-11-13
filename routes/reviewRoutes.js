@@ -10,4 +10,8 @@ router.post("/uploadAvatarS3/:userId", reviewController.uploadAvatarS3);
 
 router.get("/reviews/order/:id", reviewController.getReviewByOrderId);
 
+//Admin
+router.get("/reviews/statistics", reviewController.getReviewStatistics);
+
+
 module.exports = router;
