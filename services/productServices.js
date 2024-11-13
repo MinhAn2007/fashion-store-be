@@ -672,7 +672,7 @@ const getInventoryStats = async () => {
       .whereNull("p.deleted_at")
       .groupBy("p.id", "p.name")
       .orderBy("total_stock", "desc")
-      .limit(10);
+      .limit(5);
 
     // Query lấy sản phẩm sắp hết hàng (dưới 10 items)
     const lowStockProducts = await knex("Products_skus as ps")
