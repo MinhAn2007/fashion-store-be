@@ -26,6 +26,7 @@ router.get('/users/stats', userController.getUserStats);
 
 
 //admin login
+router.post('/admin/login', userController.adminLogin);
 
 
 module.exports = router;
