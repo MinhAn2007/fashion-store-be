@@ -163,7 +163,16 @@ const getUserStats = async (req, res) => {
 };
 
 //admin login
+const adminLogin = async (req, res) => {
+  const { email, password } = req.body;
 
+  try {
+    const adminData = await userServices.adminLogin(email, password);
+    res.json(adminData);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
 
 
 module.exports = {
@@ -174,5 +183,6 @@ module.exports = {
   deleteAddressController,
   getAllUsers,
   getUserStats,
+  adminLogin
 
 };
