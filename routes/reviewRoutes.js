@@ -12,6 +12,8 @@ router.get("/reviews/order/:id", reviewController.getReviewByOrderId);
 
 //Admin
 router.get("/reviews/statistics", reviewController.getReviewStatistics);
+//history
+router.get("/reviews/monthly-statistics", reviewController.getMonthlyReviewStatistics);
 
 
 module.exports = router;
