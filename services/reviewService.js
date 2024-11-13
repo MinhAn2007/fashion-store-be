@@ -36,7 +36,7 @@ const reviewProduct = async (
 
 const getReviewsByUserId = async (userId) => {
   try {
-    const reviews = await knex("Review").join("Product", "Review.product_id", "Product.id").select("Review.*","Product.name").where("customer_id", userId);
+    const reviews = await knex("Review").join("Product", "Review.product_id", "Product.id").select("Review.*", "Product.name").where("customer_id", userId);
 
     return reviews;
   } catch (error) {
@@ -47,9 +47,9 @@ const getReviewsByUserId = async (userId) => {
 
 const getReviewByOrderId = async (orderId) => {
   console.log(orderId);
-  
+
   try {
-    const reviews = await knex("Review").join("Product", "Review.product_id", "Product.id").select("Review.*","Product.name").where("order_id", orderId);
+    const reviews = await knex("Review").join("Product", "Review.product_id", "Product.id").select("Review.*", "Product.name").where("order_id", orderId);
 
     return reviews;
   } catch (error) {
@@ -58,8 +58,34 @@ const getReviewByOrderId = async (orderId) => {
   }
 };
 
+//Admin
+
+const getReviewStatistics = async () => {
+  try {
+    const totalReviews = await knex('Review').count('id as count').first();
+    const positiveReviews = await knex('Review')
+      .where('rating', '>=', 4)
+      .count('id as count')
+      .first();
+    const negativeReviews = await knex('Review')
+      .where('rating', '<=', 3)
+      .count('id as count')
+      .first();
+
+    return {
+      totalReviews: parseInt(totalReviews.count, 10),
+      positiveReviews: parseInt(positiveReviews.count, 10),
+      negativeReviews: parseInt(negativeReviews.count, 10),
+    };
+  } catch (error) {
+    console.error('Error fetching review statistics:', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   reviewProduct,
   getReviewsByUserId,
   getReviewByOrderId,
+  getReviewStatistics
 };
