@@ -273,35 +273,26 @@ const getAllUsers = async ({ page, limit, search, sortBy, sortOrder }) => {
 
 const getUserStats = async () => {
   try {
-    // Tổng số người dùng
-    const totalUsersResult = await knex('User').count('id as count').first();
+    const totalUsersResult = await knex("User").count("id as count").first();
     const totalUsers = parseInt(totalUsersResult.count, 10);
 
-    // Số người dùng mới trong tháng này
-    const currentMonth = new Date().getMonth() + 1; // Tháng hiện tại (từ 1 đến 12)
+    const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
 
-    const newUsersThisMonthResult = await knex('User')
-      .whereRaw('MONTH(created_at) = ? AND YEAR(created_at) = ?', [currentMonth, currentYear])
-      .count('id as count')
+    const newUsersThisMonthResult = await knex("User")
+      .whereRaw("MONTH(created_at) = ? AND YEAR(created_at) = ?", [currentMonth, currentYear])
+      .count("id as count")
       .first();
-
     const newUsersThisMonth = parseInt(newUsersThisMonthResult.count, 10);
 
-    // Thống kê số người dùng mới theo tháng
-    const monthlyNewUsers = [];
-
-    for (let month = 1; month <= 12; month++) {
-      const monthlyResult = await knex('User')
-        .whereRaw('MONTH(created_at) = ? AND YEAR(created_at) = ?', [month, currentYear])
-        .count('id as count')
-        .first();
-
-      monthlyNewUsers.push({
-        month: `Tháng ${month}`,
-        newUsers: parseInt(monthlyResult.count, 10),
-      });
-    }
+    const monthlyNewUsers = await knex("User")
+      .select(
+        knex.raw("DATE_FORMAT(created_at, '%Y-%m') as month"),
+        knex.raw("COUNT(id) as newUsers")
+      )
+      .whereRaw("YEAR(created_at) = ?", [currentYear])
+      .groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
+      .orderBy("month");
 
     return {
       totalUsers,
@@ -309,10 +300,44 @@ const getUserStats = async () => {
       monthlyNewUsers,
     };
   } catch (error) {
-    console.error('Error in getUserStats:', error.message);
-    throw new Error('Không thể lấy thống kê người dùng');
+    console.error("Error in getUserStats:", error.message);
+    throw new Error("Không thể lấy thống kê người dùng");
   }
 };
+
+//admin login
+const adminLogin = async (email, password) => {
+  try {
+    const adminUser = await knex("User").where({ email, role: 'admin' }).first();
+
+    if (!adminUser) {
+      throw new Error("Tài khoản admin không tồn tại hoặc không có quyền admin");
+    }
+
+    const isMatch = await bcrypt.compare(password, adminUser.password);
+    if (!isMatch) {
+      throw new Error("Mật khẩu không chính xác");
+    }
+
+    const token = jwt.sign({ userId: adminUser.id, role: adminUser.role }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    return {
+      user: {
+        userId: adminUser.id,
+        firstName: adminUser.first_name,
+        lastName: adminUser.last_name,
+      },
+      token: token,
+    };
+  } catch (error) {
+    console.error("Error during admin login:", error.message);
+    throw error;
+  }
+};
+
+
 
 
 module.exports = {
@@ -322,5 +347,6 @@ module.exports = {
   updateUser,
   deleteAddress,
   getAllUsers,
-  getUserStats
+  getUserStats,
+  adminLogin
 };

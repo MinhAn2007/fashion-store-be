@@ -162,6 +162,10 @@ const getUserStats = async (req, res) => {
   }
 };
 
+//admin login
+
+
+
 module.exports = {
   login,
   getUserInfo,
@@ -169,5 +173,6 @@ module.exports = {
   updateUserInfo,
   deleteAddressController,
   getAllUsers,
-  getUserStats
+  getUserStats,
+
 };
