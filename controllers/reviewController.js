@@ -16,9 +16,9 @@ const getReviewsByUserId = async (req, res) => {
 };
 
 const reviewProduct = async (req, res) => {
-  const { productId, userId, rating, content, images, video, title,orderId } = req.body;
+  const { productId, userId, rating, content, images, video, title, orderId } = req.body;
   console.log("req.body:", req.body);
-  
+
   try {
     const review = await reviewService.reviewProduct(
       productId,
@@ -127,7 +127,7 @@ const uploadAvatarS3 = async (req, res) => {
 const getReviewByOrderId = async (req, res) => {
   const { id } = req.params;
   console.log("orderId:", req.params);
-  
+
   try {
     const reviews = await reviewService.getReviewByOrderId(id);
     res.json(reviews);
@@ -137,9 +137,26 @@ const getReviewByOrderId = async (req, res) => {
   }
 }
 
+//Admin
+const getReviewStatistics = async (req, res) => {
+  try {
+    const stats = await reviewService.getReviewStatistics();
+    res.json({
+      success: true,
+      totalReviews: stats.totalReviews,
+      positiveReviews: stats.positiveReviews,
+      negativeReviews: stats.negativeReviews,
+    });
+  } catch (error) {
+    console.error("Error fetching review statistics:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   getReviewsByUserId,
   reviewProduct,
   uploadAvatarS3,
   getReviewByOrderId,
+  getReviewStatistics
 };
