@@ -83,9 +83,32 @@ const getReviewStatistics = async () => {
   }
 };
 
+// history
+const getMonthlyReviewStatistics = async () => {
+  try {
+    const currentYear = new Date().getFullYear();
+
+    const monthlyReviews = await knex('Review')
+      .select(
+        knex.raw("DATE_FORMAT(created_at, '%Y-%m') as month"), // Định dạng tháng-năm
+        knex.raw("SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) as positive"), // Đánh giá tích cực (>=4 sao)
+        knex.raw("SUM(CASE WHEN rating <= 3 THEN 1 ELSE 0 END) as negative")  // Đánh giá tiêu cực (<=3 sao)
+      )
+      .whereRaw("YEAR(created_at) = ?", [currentYear]) // Lọc đánh giá theo năm hiện tại
+      .groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
+      .orderBy("month");
+
+    return monthlyReviews;
+  } catch (error) {
+    console.error("Error fetching monthly review statistics:", error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   reviewProduct,
   getReviewsByUserId,
   getReviewByOrderId,
-  getReviewStatistics
+  getReviewStatistics,
+  getMonthlyReviewStatistics
 };
