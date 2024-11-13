@@ -88,20 +88,21 @@ const getMonthlyReviewStatistics = async () => {
   try {
     const currentYear = new Date().getFullYear();
 
+    // Truy vấn số lượng đánh giá tích cực và tiêu cực theo từng tháng của năm hiện tại
     const monthlyReviews = await knex('Review')
       .select(
-        knex.raw("DATE_FORMAT(created_at, '%Y-%m') as month"), // Định dạng tháng-năm
-        knex.raw("SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) as positive"), // Đánh giá tích cực (>=4 sao)
-        knex.raw("SUM(CASE WHEN rating <= 3 THEN 1 ELSE 0 END) as negative")  // Đánh giá tiêu cực (<=3 sao)
+        knex.raw("DATE_FORMAT(created_at, '%Y-%m') as month"), // Lấy tháng dưới dạng YYYY-MM
+        knex.raw("SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) as positive"), // Đếm đánh giá tích cực
+        knex.raw("SUM(CASE WHEN rating <= 3 THEN 1 ELSE 0 END) as negative")  // Đếm đánh giá tiêu cực
       )
-      .whereRaw("YEAR(created_at) = ?", [currentYear]) // Lọc đánh giá theo năm hiện tại
+      .whereRaw("YEAR(created_at) = ?", [currentYear])
       .groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
       .orderBy("month");
 
-    return monthlyReviews;
+    return monthlyReviews; // Trả về dữ liệu monthlyReviews cho controller sử dụng
   } catch (error) {
     console.error("Error fetching monthly review statistics:", error.message);
-    throw error;
+    throw new Error("Lỗi khi lấy thống kê đánh giá hàng tháng");
   }
 };
 
