@@ -274,7 +274,7 @@ const getAllUsers = async ({ page, limit, search, sortBy, sortOrder }) => {
 const getUserStats = async () => {
   try {
     const totalUsersResult = await knex("User").count("id as count").first();
-    const totalUsers = parseInt(totalUsersResult.count, 10);
+    const totalUsers = totalUsersResult ? parseInt(totalUsersResult.count, 10) : 0;
 
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
@@ -283,7 +283,7 @@ const getUserStats = async () => {
       .whereRaw("MONTH(created_at) = ? AND YEAR(created_at) = ?", [currentMonth, currentYear])
       .count("id as count")
       .first();
-    const newUsersThisMonth = parseInt(newUsersThisMonthResult.count, 10);
+    const newUsersThisMonth = newUsersThisMonthResult ? parseInt(newUsersThisMonthResult.count, 10) : 0;
 
     const monthlyNewUsers = await knex("User")
       .select(
@@ -301,7 +301,7 @@ const getUserStats = async () => {
     };
   } catch (error) {
     console.error("Error in getUserStats:", error.message);
-    throw new Error("Không thể lấy thống kê người dùng");
+    throw new Error("Unable to fetch user statistics.");
   }
 };
 

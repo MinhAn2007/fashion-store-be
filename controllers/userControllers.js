@@ -158,7 +158,7 @@ const getUserStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching user stats:', error.message);
-    res.status(500).json({ success: false, message: 'Không thể lấy thống kê người dùng' });
+    res.status(500).json({ success: false, message: 'Unable to fetch user statistics' });
   }
 };
 
