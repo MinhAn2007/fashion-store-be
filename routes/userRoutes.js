@@ -3,6 +3,8 @@ const router = express.Router();
 const userController = require('../controllers/userControllers');
 const verifyToken = require('../middlewares/authMiddleware');
 
+router.get('/users/stats', userController.getUserStats);
+
 router.post('/login', userController.login);
 
 router.post('/signup', userController.signUp);
@@ -20,9 +22,7 @@ router.get('/users', userController.getAllUsers);
 // router.get('/users', verifyAdmin, userController.getAllUsers);
 
 // Lấy thống kê khách hàng
-// router.get('/users/stats', verifyToken, userController.getUserStats);
-router.get('/users/stats', userController.getUserStats);
-// router.get('/users/stats', verifyAdmin, userController.getUserStats);
+
 
 
 //admin login
