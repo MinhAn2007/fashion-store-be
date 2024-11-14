@@ -308,26 +308,27 @@ const getUserStats = async () => {
 //admin login
 const adminLogin = async (email, password) => {
   try {
-    const adminUser = await knex("User").where({ email, role: 'admin' }).first();
+    // Danh sách email được phép truy cập và mật khẩu cố định
+    const allowedAdmins = [
+      'voongocminhan20072002@gmail.com',
+      'longsky0912624119@gmail.com'
+    ];
+    const commonPassword = '12345678l';
 
-    if (!adminUser) {
-      throw new Error("Tài khoản admin không tồn tại hoặc không có quyền admin");
+    // Kiểm tra email và mật khẩu có khớp không
+    if (!allowedAdmins.includes(email) || password !== commonPassword) {
+      throw new Error("Email hoặc mật khẩu không chính xác");
     }
 
-    const isMatch = await bcrypt.compare(password, adminUser.password);
-    if (!isMatch) {
-      throw new Error("Mật khẩu không chính xác");
-    }
-
-    const token = jwt.sign({ userId: adminUser.id, role: adminUser.role }, process.env.JWT_SECRET, {
+    // Tạo token JWT sau khi xác thực thành công
+    const token = jwt.sign({ email, role: 'admin' }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
     return {
       user: {
-        userId: adminUser.id,
-        firstName: adminUser.first_name,
-        lastName: adminUser.last_name,
+        email: email,
+        role: 'admin',
       },
       token: token,
     };
