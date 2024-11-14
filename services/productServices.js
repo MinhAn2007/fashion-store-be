@@ -578,18 +578,20 @@ const getProductStats = async (timeRange) => {
   try {
     let startDate, endDate;
     const currentDate = new Date();
-    
+
     switch (timeRange) {
-      case 'week':
+      case "week":
         startDate = new Date(currentDate.setDate(currentDate.getDate() - 7));
         break;
-      case 'month':
+      case "month":
         startDate = new Date(currentDate.setMonth(currentDate.getMonth() - 1));
         break;
-      case 'year':
-        startDate = new Date(currentDate.setFullYear(currentDate.getFullYear() - 1));
+      case "year":
+        startDate = new Date(
+          currentDate.setFullYear(currentDate.getFullYear() - 1)
+        );
         break;
-      case 'first_6_months':
+      case "first_6_months":
         startDate = new Date(currentDate.getFullYear(), 0, 1); // 1st Jan current year
         endDate = new Date(currentDate.getFullYear(), 5, 30); // 30th June current year
         break;
@@ -623,6 +625,7 @@ const getProductStats = async (timeRange) => {
       .where("o.status", "completed")
       .whereBetween("o.created_at", [startDate, endDate || new Date()])
       .groupBy("p.id", "p.name")
+      .orderBy("revenue", "desc")
       .orderBy("sales", "desc")
       .limit(5);
 
@@ -632,7 +635,7 @@ const getProductStats = async (timeRange) => {
       .select(
         knex.raw("DATE_FORMAT(o.created_at, '%Y-%m') as period"),
         knex.raw("SUM(oi.quantity) as total_quantity"),
-        knex.raw("SUM(oi.quantity * oi.price) as total_revenue")
+        knex.raw("SUM(o.total) as total_revenue")
       )
       .where("o.status", "completed")
       .whereBetween("o.created_at", [startDate, endDate || new Date()])
@@ -643,13 +646,13 @@ const getProductStats = async (timeRange) => {
     const [stats, topProducts, salesByTime] = await Promise.all([
       statsQuery.first(),
       topProductsQuery,
-      salesByTimeQuery
+      salesByTimeQuery,
     ]);
 
     return {
       summary: stats,
       topProducts,
-      salesByTime
+      salesByTime,
     };
   } catch (error) {
     console.error("Error fetching product statistics:", error.message);
@@ -677,20 +680,14 @@ const getInventoryStats = async () => {
     // Query lấy sản phẩm sắp hết hàng (dưới 10 items)
     const lowStockProducts = await knex("Products_skus as ps")
       .join("Product as p", "ps.product_id", "p.id")
-      .select(
-        "p.id",
-        "p.name",
-        "ps.size",
-        "ps.color",
-        "ps.quantity"
-      )
+      .select("p.id", "p.name", "ps.size", "ps.color", "ps.quantity")
       .whereNull("p.deleted_at")
       .where("ps.quantity", "<", 10)
       .orderBy("ps.quantity", "asc");
 
     return {
       inventoryStats,
-      lowStockProducts
+      lowStockProducts,
     };
   } catch (error) {
     console.error("Error fetching inventory statistics:", error.message);
@@ -702,50 +699,51 @@ const getProductRevenueStats = async (timeRange) => {
   try {
     let startDate, endDate;
     const currentDate = new Date();
-    
-    // Xử lý timeRange tương tự như getProductStats
+
     switch (timeRange) {
-      case 'week':
+      case "week":
         startDate = new Date(currentDate.setDate(currentDate.getDate() - 7));
         break;
-      case 'month':
+      case "month":
         startDate = new Date(currentDate.setMonth(currentDate.getMonth() - 1));
         break;
-      case 'year':
-        startDate = new Date(currentDate.setFullYear(currentDate.getFullYear() - 1));
-        break;
-      case 'first_6_months':
-        startDate = new Date(currentDate.getFullYear(), 0, 1);
-        endDate = new Date(currentDate.getFullYear(), 5, 30);
+      case "year":
+        startDate = new Date(
+          currentDate.setFullYear(currentDate.getFullYear() - 1)
+        );
         break;
       default:
         startDate = new Date(0);
         endDate = new Date();
     }
 
-    const revenueStats = await knex("OrderItem as oi")
-      .join("Product as p", "oi.product_id", "p.id")
-      .join("Order as o", "oi.order_id", "o.id")
-      .select(
-        "p.id",
-        "p.name",
-        knex.raw("SUM(oi.quantity) as total_sales"),
-        knex.raw("SUM(oi.quantity * oi.price) as total_revenue"),
-        knex.raw("AVG(oi.price) as average_price")
-      )
-      .where("o.status", "completed")
-      .whereBetween("o.created_at", [startDate, endDate || new Date()])
-      .groupBy("p.id", "p.name")
-      .orderBy("total_revenue", "desc");
 
-    return revenueStats;
+    const productRevenueQuery = knex("Product as p")
+    .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+    .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
+    .select(
+      "p.id as id",
+      "p.name as name",
+      knex.raw("COALESCE(SUM(ps.quantity), 0) as stock_quantity"),
+      knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue"),
+      knex.raw("COALESCE(p.sold, 0) as sold_quantity")
+    )
+    .groupBy("p.id", "p.name", "p.sold")
+    .orderBy("id", "asc");
+  
+  const productRevenueStats = await productRevenueQuery;
+    console.log("productRevenueStats", productRevenueStats);
+    productRevenueStats.forEach((product) => {
+      product.revenue = parseFloat(product.revenue);
+      product.stock_quantity = parseInt(product.stock_quantity);
+      product.sold_quantity = parseInt(product.sold_quantity);
+    });
+    return productRevenueStats;
   } catch (error) {
     console.error("Error fetching product revenue statistics:", error.message);
     throw error;
   }
 };
-
-
 
 module.exports = {
   getProductsWithPaging,
@@ -759,5 +757,5 @@ module.exports = {
   searchProducts,
   getProductStats,
   getInventoryStats,
-  getProductRevenueStats
+  getProductRevenueStats,
 };
