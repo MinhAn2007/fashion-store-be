@@ -307,38 +307,16 @@ const getUserStats = async () => {
 
 //admin login
 const adminLogin = async (email, password) => {
-  try {
-    // Danh sách email được phép truy cập và mật khẩu cố định
-    const allowedAdmins = [
-      'voongocminhan20072002@gmail.com',
-      'longsky0912624119@gmail.com'
-    ];
-    const commonPassword = '12345678l';
+  const allowedAdmins = ['voongocminhan20072002@gmail.com', 'longsky0912624119@gmail.com'];
+  const commonPassword = '12345678';
 
-    // Kiểm tra email và mật khẩu có khớp không
-    if (!allowedAdmins.includes(email) || password !== commonPassword) {
-      throw new Error("Email hoặc mật khẩu không chính xác");
-    }
-
-    // Tạo token JWT sau khi xác thực thành công
-    const token = jwt.sign({ email, role: 'admin' }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    return {
-      user: {
-        email: email,
-        role: 'admin',
-      },
-      token: token,
-    };
-  } catch (error) {
-    console.error("Error during admin login:", error.message);
-    throw error;
+  if (!allowedAdmins.includes(email) || password !== commonPassword) {
+    throw new Error("Email hoặc mật khẩu không chính xác");
   }
+
+  const token = jwt.sign({ email, role: 'admin' }, process.env.JWT_SECRET, { expiresIn: "1h" });
+  return { token };
 };
-
-
 
 
 module.exports = {

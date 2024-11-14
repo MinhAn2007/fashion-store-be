@@ -168,7 +168,10 @@ const adminLogin = async (req, res) => {
 
   try {
     const adminData = await userServices.adminLogin(email, password);
-    res.json(adminData);
+    if (!adminData) {
+      return res.status(401).json({ message: "Email hoặc mật khẩu không chính xác" });
+    }
+    res.json(adminData); // Trả về token và email của admin
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
