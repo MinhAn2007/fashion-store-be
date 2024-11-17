@@ -207,7 +207,7 @@ const getInventoryStats = async (req, res) => {
     console.error("Error fetching inventory stats:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
-}
+};
 
 const getProductStats = async (req, res) => {
   try {
@@ -218,7 +218,7 @@ const getProductStats = async (req, res) => {
     console.error("Error fetching product stats:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
-}
+};
 
 const getProductRevenueStats = async (req, res) => {
   try {
@@ -229,15 +229,15 @@ const getProductRevenueStats = async (req, res) => {
     console.error("Error fetching product revenue stats:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
-}
+};
 
 const editProduct = async (req, res) => {
   const productId = req.params.id;
   const product = req.body;
   console.log("req", req);
-  
+
   console.log("req.body", req.body);
-  
+
   try {
     const updatedProduct = await productService.editProduct(productId, product);
 
@@ -246,7 +246,7 @@ const editProduct = async (req, res) => {
     console.error("Error updating product:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
-}
+};
 
 const deleteProduct = async (req, res) => {
   const productId = req.params.id;
@@ -260,7 +260,31 @@ const deleteProduct = async (req, res) => {
     console.error("Error deleting product:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
-}
+};
+
+const addProduct = async (req, res) => {
+  console.log("req.body", req.body);
+
+  const { name, description, category_id, status, skus } = req.body;
+
+  const product = {
+    name,
+    description,
+    category_id,
+    status,
+  };
+
+  console.log("product", product);
+  console.log("skus", skus);
+  
+  try {
+    const newProduct = await productService.addProduct(product, skus);
+    res.status(201).json(newProduct);
+  } catch (error) {
+    console.error("Error adding product:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
 module.exports = {
   getProductsByPrice,
@@ -277,4 +301,5 @@ module.exports = {
   getProductRevenueStats,
   editProduct,
   deleteProduct,
+  addProduct,
 };

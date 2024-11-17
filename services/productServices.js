@@ -652,7 +652,7 @@ const getInventoryStats = async () => {
       .select(
         "p.id",
         "p.name",
-        knex.raw("SUM(ps.quantity) as total_stock"), 
+        knex.raw("SUM(ps.quantity) as total_stock"),
         knex.raw("GROUP_CONCAT(DISTINCT ps.size) as sizes"),
         knex.raw("COUNT(DISTINCT ps.color) as color_variants")
       )
@@ -700,27 +700,26 @@ const getProductRevenueStats = async (timeRange) => {
         endDate = new Date();
     }
 
-
     const productRevenueQuery = knex("Product as p")
-    .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
-    .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
-    .leftJoin("Category as c", "p.category_id", "c.id")
-    .select(
-      "p.id as id",
-      "p.name as name",
-      "c.name as category",
-      "c.id as category_id",
-      "p.collection as collection",
-      "p.description as description",
-      "p.status as status",
-      knex.raw("COALESCE(SUM(ps.quantity), 0) as stock_quantity"),
-      knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue"),
-      knex.raw("COALESCE(p.sold, 0) as sold_quantity")
-    )
-    .groupBy("p.id", "p.name", "p.sold")
-    .orderBy("id", "asc");
-  
-  const productRevenueStats = await productRevenueQuery;
+      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+      .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
+      .leftJoin("Category as c", "p.category_id", "c.id")
+      .select(
+        "p.id as id",
+        "p.name as name",
+        "c.name as category",
+        "c.id as category_id",
+        "p.collection as collection",
+        "p.description as description",
+        "p.status as status",
+        knex.raw("COALESCE(SUM(ps.quantity), 0) as stock_quantity"),
+        knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue"),
+        knex.raw("COALESCE(p.sold, 0) as sold_quantity")
+      )
+      .groupBy("p.id", "p.name", "p.sold")
+      .orderBy("id", "asc");
+
+    const productRevenueStats = await productRevenueQuery;
     console.log("productRevenueStats", productRevenueStats);
     productRevenueStats.forEach((product) => {
       product.revenue = parseFloat(product.revenue);
@@ -736,20 +735,18 @@ const getProductRevenueStats = async (timeRange) => {
 
 const editProduct = async (productId, productData) => {
   console.log("productId", productId);
-  
+
   console.log("productId", productData);
-  
+
   try {
-    const updatedProduct = await knex("Product")
-      .where("id", productId)
-      .update({
-        name: productData.name,
-        description: productData.description,
-        category_id: productData.category_id,
-        collection: productData.collection,
-        status: productData.status,
-        updated_at: new Date(),
-      })
+    const updatedProduct = await knex("Product").where("id", productId).update({
+      name: productData.name,
+      description: productData.description,
+      category_id: productData.category_id,
+      collection: productData.collection,
+      status: productData.status,
+      updated_at: new Date(),
+    });
     return updatedProduct;
   } catch (error) {
     console.error("Error updating product:", error.message);
@@ -759,17 +756,90 @@ const editProduct = async (productId, productData) => {
 
 const deleteProduct = async (productId) => {
   try {
-    const deletedProduct = await knex("Product")
-      .where("id", productId)
-      .update({
-        status: 0,
-      });
+    const deletedProduct = await knex("Product").where("id", productId).update({
+      status: 0,
+    });
     return deletedProduct;
   } catch (error) {
     console.error("Error deleting product:", error.message);
     throw error;
   }
 };
+
+const addProduct = async (productData, skus) => {
+  try {
+    // Validation checks
+    if (!productData.name || !productData.category_id) {
+      throw new Error("Missing required product information");
+    }
+
+    if (!skus || !Array.isArray(skus) || skus.length === 0) {
+      throw new Error("At least one SKU is required");
+    }
+
+    // Check for duplicate SKUs
+    const skuValues = skus.map(sku => sku.sku);
+    const uniqueSkus = new Set(skuValues);
+    if (skuValues.length !== uniqueSkus.size) {
+      throw new Error("Duplicate SKU values are not allowed");
+    }
+
+    // Calculate total quantity
+    const totalQuantity = skus.reduce(
+      (sum, sku) => sum + Number(sku.quantity),
+      0
+    );
+
+    // Start transaction
+    const trx = await knex.transaction();
+
+    try {
+      // 1. Insert product
+      const [productId] = await trx("Product")
+        .insert({
+          name: productData.name,
+          category_id: productData.category_id,
+          description: productData.description,
+          status: 1,
+          featured: 0,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning("id");
+
+      // 2. Insert SKUs
+      const skuRecords = skus.map((sku) => ({
+        product_id: productId,
+        size: sku.size_attribute_id,
+        color: sku.color_attribute_id,
+        sku: sku.sku,
+        price: sku.price,
+        quantity: sku.quantity,
+        image: sku.image,
+        created_at: new Date(),
+      }));
+
+      await trx("Products_skus").insert(skuRecords);
+
+      // Commit transaction
+      await trx.commit();
+
+      return {
+        success: true,
+      };
+
+    } catch (error) {
+      await trx.rollback();
+      console.error("Error in addProduct:", error.message);
+      throw error;
+    }
+
+  } catch (error) {
+    console.error("Error in addProduct:", error.message);
+    throw error;
+  }
+};
+
 
 module.exports = {
   getProductsWithPaging,
@@ -786,4 +856,5 @@ module.exports = {
   getProductRevenueStats,
   editProduct,
   deleteProduct,
+  addProduct,
 };
