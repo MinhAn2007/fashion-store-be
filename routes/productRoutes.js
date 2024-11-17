@@ -32,4 +32,6 @@ router.delete('/product/:id', productController.deleteProduct);
 
 router.post('/product', productController.addProduct);
 
+router.get('/product/sku/:id', productController.getSKUdetails);
+
 module.exports = router;

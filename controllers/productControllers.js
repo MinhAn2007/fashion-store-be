@@ -286,6 +286,24 @@ const addProduct = async (req, res) => {
   }
 };
 
+const getSKUdetails = async (req, res) => {
+  const productId = req.params.id;
+  try {
+    const skus = await productService.getSKUdetails(productId);
+
+    if (skus.length === 0) {
+      return res.status(404).json({ message: "No skus found" });
+    }
+
+    res.status(200).json({
+      skus: skus,
+    });
+  } catch (error) {
+    console.error("Error fetching all skus:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   getProductsByPrice,
   getProductsWithPaging,
@@ -302,4 +320,5 @@ module.exports = {
   editProduct,
   deleteProduct,
   addProduct,
+  getSKUdetails,
 };

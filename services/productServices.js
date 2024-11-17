@@ -558,6 +558,139 @@ const searchProducts = async (keyword) => {
   }
 };
 
+const getSKUdetails = async (productId) => {
+  try {
+    // Get the SKU and its related product information
+    const skuWithProduct = await knex('Products_skus as sku')
+
+    .leftJoin('Product as p', 'sku.product_id', 'p.id')
+    .leftJoin('OrderItem as oi', 'sku.id', 'oi.product_id')
+    .select(
+      'sku.*',
+      'p.name as product_name',
+      'p.description',
+      knex.raw('SUM(sku.quantity) as total_stock'),
+      knex.raw('SUM(oi.quantity) as total_sold')
+    )
+    .where('p.id', productId)
+    .groupBy('sku.id')
+    .first();
+
+
+    if (!skuWithProduct) {
+      throw new Error('SKU not found');
+    }
+
+    // Get all SKUs for the same product to calculate statistics
+    const allProductSKUs = await knex('Products_skus')
+      .select(
+        'id',
+        'sku',
+        'size',
+        'color',
+        'price',
+        'quantity as stock_quantity'
+      )
+      .where('product_id', skuWithProduct.product_id);
+
+    // Get order items to calculate sales data
+    const salesData = await knex('OrderItem as oi')
+      .select(
+        'sku.id',
+        'sku.size',
+        'sku.color',
+        'sku.price',
+        knex.raw('SUM(oi.quantity) as sold_quantity'),
+        knex.raw('SUM(oi.quantity * oi.price) as revenue')
+      )
+      .leftJoin('Products_skus as sku', 'oi.product_id', 'sku.id')
+      .where('sku.product_id', skuWithProduct.product_id)
+      .groupBy('sku.id', 'sku.size', 'sku.color', 'sku.price');
+
+    // Calculate statistics
+    const stats = calculateStatistics(allProductSKUs, salesData);
+
+    // Combine SKU list with sales data
+    const skuList = allProductSKUs.map(sku => {
+      const sales = salesData.find(s => s.size === sku.size && s.color === sku.color && s.id === sku.id) || {
+        sold_quantity: 0,
+        revenue: 0
+      };
+      return {
+        id: sku.id,
+        name: sku.sku,
+        size: sku.size,
+        color: sku.color,
+        stock_quantity: parseInt(sku.stock_quantity),
+        price: parseFloat(sku.price),
+        sold_quantity: parseInt(sales.sold_quantity) || 0,
+        revenue: parseFloat(sales.revenue) || 0
+      };
+    });
+
+    // Calculate total revenue
+    const totalRevenue = skuList.reduce((sum, sku) => sum + sku.revenue, 0);
+    console.log('skuWithProduct', skuWithProduct);
+    const totalStock = skuList.reduce((sum, sku) => sum + sku.stock_quantity, 0);
+    const totalSold = skuList.reduce((sum, sku) => sum + sku.sold_quantity, 0);
+
+    return {
+      product: {
+        id: skuWithProduct.product_id,
+        name: skuWithProduct.product_name,
+        description: skuWithProduct.description,
+        total_stock: totalStock,
+        total_sold: totalSold,
+        total_revenue: totalRevenue
+      },
+      skuList,
+      stats
+    };
+  } catch (error) {
+    console.error('Error in getSKUdetails:', error);
+    throw error;
+  }
+};
+
+const calculateStatistics = (skus, salesData) => {
+  // Helper function to create distribution data
+  const createDistribution = (items, key) => {
+    const distribution = {};
+    items.forEach(item => {
+      const value = item[key];
+      distribution[value] = (distribution[value] || 0) + 1;
+    });
+    
+    return Object.entries(distribution).map(([name, value]) => ({
+      name,
+      value
+    }));
+  };
+
+  // Helper function to create sales distribution
+  const createSalesDistribution = (data, key) => {
+    const distribution = {};
+    data.forEach(item => {
+      const value = item[key];
+      distribution[value] = (distribution[value] || 0) + parseInt(item.sold_quantity);
+    });
+    
+    return Object.entries(distribution).map(([name, value]) => ({
+      name,
+      value
+    }));
+  };
+
+  // Create price ranges for distribution
+
+
+  return {
+    sizeDistribution: createDistribution(skus, 'size'),
+    colorDistribution: createDistribution(skus, 'color'),
+    salesBySize: createSalesDistribution(salesData, 'size'),
+    salesByColor: createSalesDistribution(salesData, 'color'),
+  };
+};
 const getProductStats = async (timeRange) => {
   try {
     let startDate, endDate;
@@ -701,24 +834,28 @@ const getProductRevenueStats = async (timeRange) => {
     }
 
     const productRevenueQuery = knex("Product as p")
-      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
-      .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
-      .leftJoin("Category as c", "p.category_id", "c.id")
-      .select(
-        "p.id as id",
-        "p.name as name",
-        "c.name as category",
-        "c.id as category_id",
-        "p.collection as collection",
-        "p.description as description",
-        "p.status as status",
-        knex.raw("COALESCE(SUM(ps.quantity), 0) as stock_quantity"),
-        knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue"),
-        knex.raw("COALESCE(p.sold, 0) as sold_quantity")
-      )
-      .groupBy("p.id", "p.name", "p.sold")
-      .orderBy("id", "asc");
-
+    .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+    .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
+    .leftJoin("Category as c", "p.category_id", "c.id")
+    .select(
+      "p.id as id",
+      "p.name as name",
+      "c.name as category",
+      "c.id as category_id",
+      "p.collection as collection",
+      "p.description as description",
+      "p.status as status",
+      knex.raw(`(
+        SELECT COALESCE(SUM(quantity), 0)
+        FROM Products_skus
+        WHERE product_id = p.id
+      ) as stock_quantity`),
+      knex.raw("COALESCE(SUM(oi.quantity), 0) as sold_quantity"),
+      knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue")
+    )
+    .groupBy("p.id", "c.id", "p.name", "p.collection", "p.description", "p.status")
+    .orderBy("id", "asc");
+    
     const productRevenueStats = await productRevenueQuery;
     console.log("productRevenueStats", productRevenueStats);
     productRevenueStats.forEach((product) => {
@@ -778,7 +915,7 @@ const addProduct = async (productData, skus) => {
     }
 
     // Check for duplicate SKUs
-    const skuValues = skus.map(sku => sku.sku);
+    const skuValues = skus.map((sku) => sku.sku);
     const uniqueSkus = new Set(skuValues);
     if (skuValues.length !== uniqueSkus.size) {
       throw new Error("Duplicate SKU values are not allowed");
@@ -827,19 +964,16 @@ const addProduct = async (productData, skus) => {
       return {
         success: true,
       };
-
     } catch (error) {
       await trx.rollback();
       console.error("Error in addProduct:", error.message);
       throw error;
     }
-
   } catch (error) {
     console.error("Error in addProduct:", error.message);
     throw error;
   }
 };
-
 
 module.exports = {
   getProductsWithPaging,
@@ -857,4 +991,5 @@ module.exports = {
   editProduct,
   deleteProduct,
   addProduct,
+  getSKUdetails,
 };
