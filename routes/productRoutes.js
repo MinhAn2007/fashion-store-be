@@ -26,4 +26,6 @@ router.get('/productStats', productController.getProductStats);
 
 router.get('/productRevenueStats', productController.getProductRevenueStats);
 
+router.put('/product/:id', productController.editProduct);
+
 module.exports = router;

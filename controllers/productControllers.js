@@ -231,6 +231,23 @@ const getProductRevenueStats = async (req, res) => {
   }
 }
 
+const editProduct = async (req, res) => {
+  const productId = req.params.id;
+  const product = req.body;
+  console.log("req", req);
+  
+  console.log("req.body", req.body);
+  
+  try {
+    const updatedProduct = await productService.editProduct(productId, product);
+
+    res.status(200).json(updatedProduct);
+  } catch (error) {
+    console.error("Error updating product:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
 module.exports = {
   getProductsByPrice,
   getProductsWithPaging,
@@ -243,5 +260,6 @@ module.exports = {
   searchProducts,
   getInventoryStats,
   getProductStats,
-  getProductRevenueStats
+  getProductRevenueStats,
+  editProduct
 };

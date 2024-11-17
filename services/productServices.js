@@ -36,7 +36,6 @@ const getProductById = async (productId) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name as category_name",
         "parent.name as parent_category_name",
         knex.raw("MIN(ps.price) as min_price"),
@@ -65,7 +64,6 @@ const getProductById = async (productId) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name",
         "parent.name"
       );
@@ -135,7 +133,6 @@ const getProductsByCategory = async (categoryId) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "p.created_at",
         "p.updated_at",
         "p.deleted_at",
@@ -169,7 +166,6 @@ const getProductsByCategory = async (categoryId) => {
       "p.description",
       "p.sold",
       "p.status",
-      "p.featured",
       "p.created_at",
       "p.updated_at",
       "p.deleted_at",
@@ -251,7 +247,6 @@ const getAllProducts = async (limit = 10, offset = 0) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name as category_name",
         "parent.name as parent_category_name",
         knex.raw("MIN(ps.price) as min_price"),
@@ -280,7 +275,6 @@ const getAllProducts = async (limit = 10, offset = 0) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name",
         "parent.name"
       )
@@ -309,7 +303,6 @@ const getBestsellerProducts = async (limit = 10, offset = 0) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name as category_name",
         "parent.name as parent_category_name",
         knex.raw("MIN(ps.price) as min_price"),
@@ -338,7 +331,6 @@ const getBestsellerProducts = async (limit = 10, offset = 0) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name",
         "parent.name"
       )
@@ -368,7 +360,6 @@ const getProductsByPrice = async (min, max) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name as category_name",
         "parent.name as parent_category_name",
         knex.raw("MIN(ps.price) as min_price"),
@@ -397,7 +388,6 @@ const getProductsByPrice = async (min, max) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name",
         "parent.name"
       )
@@ -423,7 +413,6 @@ const getNewProducts = async () => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name as category_name",
         "parent.name as parent_category_name",
         knex.raw("MIN(ps.price) as min_price"),
@@ -451,7 +440,6 @@ const getNewProducts = async () => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name",
         "parent.name"
       )
@@ -478,7 +466,6 @@ const getProductsByCollection = async (collection) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name as category_name",
         "parent.name as parent_category_name",
         knex.raw("MIN(ps.price) as min_price"),
@@ -507,7 +494,6 @@ const getProductsByCollection = async (collection) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name",
         "parent.name"
       )
@@ -533,7 +519,6 @@ const searchProducts = async (keyword) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name as category_name",
         "parent.name as parent_category_name",
         knex.raw("MIN(ps.price) as min_price"),
@@ -562,7 +547,6 @@ const searchProducts = async (keyword) => {
         "p.description",
         "p.sold",
         "p.status",
-        "p.featured",
         "c.name",
         "parent.name"
       )
@@ -664,15 +648,14 @@ const getInventoryStats = async () => {
   try {
     // Query lấy thống kê tồn kho
     const inventoryStats = await knex("Products_skus as ps")
-      .join("Product as p", "ps.product_id", "p.id")
+      .leftJoin("Product as p", "ps.product_id", "p.id")
       .select(
         "p.id",
         "p.name",
-        knex.raw("SUM(ps.quantity) as total_stock"),
+        knex.raw("SUM(ps.quantity) as total_stock"), 
         knex.raw("GROUP_CONCAT(DISTINCT ps.size) as sizes"),
         knex.raw("COUNT(DISTINCT ps.color) as color_variants")
       )
-      .whereNull("p.deleted_at")
       .groupBy("p.id", "p.name")
       .orderBy("total_stock", "desc")
       .limit(5);
@@ -721,9 +704,14 @@ const getProductRevenueStats = async (timeRange) => {
     const productRevenueQuery = knex("Product as p")
     .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
     .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
+    .leftJoin("Category as c", "p.category_id", "c.id")
     .select(
       "p.id as id",
       "p.name as name",
+      "c.name as category",
+      "c.id as category_id",
+      "p.collection as collection",
+      "p.description as description",
       knex.raw("COALESCE(SUM(ps.quantity), 0) as stock_quantity"),
       knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue"),
       knex.raw("COALESCE(p.sold, 0) as sold_quantity")
@@ -745,6 +733,29 @@ const getProductRevenueStats = async (timeRange) => {
   }
 };
 
+const editProduct = async (productId, productData) => {
+  console.log("productId", productId);
+  
+  console.log("productId", productData);
+  
+  try {
+    const updatedProduct = await knex("Product")
+      .where("id", productId)
+      .update({
+        name: productData.name,
+        description: productData.description,
+        category_id: productData.category_id,
+        collection: productData.collection,
+        status: productData.status,
+        updated_at: new Date(),
+      })
+    return updatedProduct;
+  } catch (error) {
+    console.error("Error updating product:", error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   getProductsWithPaging,
   getProductById,
@@ -758,4 +769,5 @@ module.exports = {
   getProductStats,
   getInventoryStats,
   getProductRevenueStats,
+  editProduct,
 };
