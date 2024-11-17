@@ -28,4 +28,6 @@ router.get('/productRevenueStats', productController.getProductRevenueStats);
 
 router.put('/product/:id', productController.editProduct);
 
+router.delete('/product/:id', productController.deleteProduct);
+
 module.exports = router;

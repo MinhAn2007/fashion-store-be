@@ -712,6 +712,7 @@ const getProductRevenueStats = async (timeRange) => {
       "c.id as category_id",
       "p.collection as collection",
       "p.description as description",
+      "p.status as status",
       knex.raw("COALESCE(SUM(ps.quantity), 0) as stock_quantity"),
       knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue"),
       knex.raw("COALESCE(p.sold, 0) as sold_quantity")
@@ -756,6 +757,20 @@ const editProduct = async (productId, productData) => {
   }
 };
 
+const deleteProduct = async (productId) => {
+  try {
+    const deletedProduct = await knex("Product")
+      .where("id", productId)
+      .update({
+        status: 0,
+      });
+    return deletedProduct;
+  } catch (error) {
+    console.error("Error deleting product:", error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   getProductsWithPaging,
   getProductById,
@@ -770,4 +785,5 @@ module.exports = {
   getInventoryStats,
   getProductRevenueStats,
   editProduct,
+  deleteProduct,
 };

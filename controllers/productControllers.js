@@ -248,6 +248,20 @@ const editProduct = async (req, res) => {
   }
 }
 
+const deleteProduct = async (req, res) => {
+  const productId = req.params.id;
+  try {
+    const deletedProduct = await productService.deleteProduct(productId);
+    if (!deletedProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    res.status(200).json(deletedProduct);
+  } catch (error) {
+    console.error("Error deleting product:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
 module.exports = {
   getProductsByPrice,
   getProductsWithPaging,
@@ -261,5 +275,6 @@ module.exports = {
   getInventoryStats,
   getProductStats,
   getProductRevenueStats,
-  editProduct
+  editProduct,
+  deleteProduct,
 };
