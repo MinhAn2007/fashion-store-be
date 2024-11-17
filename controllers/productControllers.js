@@ -276,7 +276,7 @@ const addProduct = async (req, res) => {
 
   console.log("product", product);
   console.log("skus", skus);
-  
+
   try {
     const newProduct = await productService.addProduct(product, skus);
     res.status(201).json(newProduct);
@@ -304,6 +304,18 @@ const getSKUdetails = async (req, res) => {
   }
 };
 
+const addSku = async (req, res) => {
+  const productId = req.params.id;
+  const sku = req.body;
+  try {
+    const newSku = await productService.addSku(productId, sku);
+    res.status(201).json(newSku);
+  } catch (error) {
+    console.error("Error adding sku:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   getProductsByPrice,
   getProductsWithPaging,
@@ -321,4 +333,5 @@ module.exports = {
   deleteProduct,
   addProduct,
   getSKUdetails,
+  addSku,
 };

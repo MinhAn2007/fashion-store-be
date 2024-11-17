@@ -855,7 +855,7 @@ const getProductRevenueStats = async (timeRange) => {
     )
     .groupBy("p.id", "c.id", "p.name", "p.collection", "p.description", "p.status")
     .orderBy("id", "asc");
-    
+
     const productRevenueStats = await productRevenueQuery;
     console.log("productRevenueStats", productRevenueStats);
     productRevenueStats.forEach((product) => {
@@ -975,6 +975,25 @@ const addProduct = async (productData, skus) => {
   }
 };
 
+const addSku = async (productId, skuData) => {
+  try {
+    const newSku = await knex("Products_skus").insert({
+      product_id: productId,
+      size: skuData.size,
+      color: skuData.color,
+      sku: skuData.sku,
+      price: skuData.price,
+      quantity: skuData.quantity,
+      image: skuData.image,
+      created_at: new Date(),
+    });
+    return newSku;
+  } catch (error) {
+    console.error("Error adding SKU:", error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   getProductsWithPaging,
   getProductById,
@@ -992,4 +1011,5 @@ module.exports = {
   deleteProduct,
   addProduct,
   getSKUdetails,
+  addSku,
 };
