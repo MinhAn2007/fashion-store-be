@@ -12,6 +12,20 @@ const getCategories = async (req, res) => {
   }
 };
 
+const getCategoriesDashboard = async (req, res) => {
+  try {
+    const categories = await categoryService.getCategoriesDashboard();
+    res.status(200).json({
+      success: true,
+      categories: categories,
+    });
+  } catch (error) {
+    console.error("Error fetching all categories:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   getCategories,
+  getCategoriesDashboard,
 };
