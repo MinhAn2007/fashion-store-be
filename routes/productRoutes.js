@@ -36,4 +36,6 @@ router.get('/product/sku/:id', productController.getSKUdetails);
 
 router.post('/product/sku/:id', productController.addSku);
 
+router.put('/product/sku/:id', productController.editSKU);
+
 module.exports = router;

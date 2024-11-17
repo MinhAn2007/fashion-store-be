@@ -589,6 +589,7 @@ const getSKUdetails = async (productId) => {
         'size',
         'color',
         'price',
+        'image',
         'quantity as stock_quantity'
       )
       .where('product_id', skuWithProduct.product_id);
@@ -621,6 +622,8 @@ const getSKUdetails = async (productId) => {
         name: sku.sku,
         size: sku.size,
         color: sku.color,
+        sku: sku.sku,
+        image: sku.image,
         stock_quantity: parseInt(sku.stock_quantity),
         price: parseFloat(sku.price),
         sold_quantity: parseInt(sales.sold_quantity) || 0,
@@ -994,6 +997,23 @@ const addSku = async (productId, skuData) => {
   }
 };
 
+const editSKU = async (skuId, skuData) => {
+  try {
+    const updatedSku = await knex("Products_skus").where("id", skuId).update({
+      size: skuData.size,
+      color: skuData.color,
+      sku: skuData.sku,
+      price: skuData.price,
+      quantity: skuData.quantity,
+      image: skuData.image,
+    });
+    return updatedSku;
+  } catch (error) {
+    console.error("Error updating SKU:", error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   getProductsWithPaging,
   getProductById,
@@ -1012,4 +1032,5 @@ module.exports = {
   addProduct,
   getSKUdetails,
   addSku,
+  editSKU,
 };

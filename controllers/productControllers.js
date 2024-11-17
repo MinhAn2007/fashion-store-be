@@ -316,6 +316,18 @@ const addSku = async (req, res) => {
   }
 };
 
+const editSKU = async (req, res) => {
+  const skuId = req.params.id;
+  const sku = req.body;
+  try {
+    const updatedSku = await productService.editSKU(skuId, sku);
+    res.status(200).json(updatedSku);
+  } catch (error) {
+    console.error("Error updating sku:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
 module.exports = {
   getProductsByPrice,
   getProductsWithPaging,
@@ -334,4 +346,5 @@ module.exports = {
   addProduct,
   getSKUdetails,
   addSku,
+  editSKU,
 };
