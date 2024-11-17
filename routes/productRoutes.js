@@ -38,4 +38,6 @@ router.post('/product/sku/:id', productController.addSku);
 
 router.put('/product/sku/:id', productController.editSKU);
 
+router.delete('/product/sku/:id', productController.deleteSKU);
+
 module.exports = router;

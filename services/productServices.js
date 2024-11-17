@@ -590,7 +590,8 @@ const getSKUdetails = async (productId) => {
         'color',
         'price',
         'image',
-        'quantity as stock_quantity'
+        'quantity as stock_quantity',
+        'deleted_at'
       )
       .where('product_id', skuWithProduct.product_id);
 
@@ -624,6 +625,7 @@ const getSKUdetails = async (productId) => {
         color: sku.color,
         sku: sku.sku,
         image: sku.image,
+        deleted_at: sku.deleted_at,
         stock_quantity: parseInt(sku.stock_quantity),
         price: parseFloat(sku.price),
         sold_quantity: parseInt(sales.sold_quantity) || 0,
@@ -1014,6 +1016,18 @@ const editSKU = async (skuId, skuData) => {
   }
 }
 
+const deleteSKU = async (skuId) => {
+  try {
+    const deletedSku = await knex("Products_skus").where("id", skuId).update({
+      deleted_at: new Date(),
+    });
+    return deletedSku;
+  } catch (error) {
+    console.error("Error deleting SKU:", error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   getProductsWithPaging,
   getProductById,
@@ -1033,4 +1047,5 @@ module.exports = {
   getSKUdetails,
   addSku,
   editSKU,
+  deleteSKU,
 };

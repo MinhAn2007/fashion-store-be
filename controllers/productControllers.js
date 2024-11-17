@@ -328,6 +328,20 @@ const editSKU = async (req, res) => {
   }
 }
 
+const deleteSKU = async (req, res) => {
+  const skuId = req.params.id;
+  try {
+    const deletedSku = await productService.deleteSKU(skuId);
+    if (!deletedSku) {
+      return res.status(404).json({ message: "Sku not found" });
+    }
+    res.status(200).json(deletedSku);
+  } catch (error) {
+    console.error("Error deleting sku:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   getProductsByPrice,
   getProductsWithPaging,
@@ -347,4 +361,5 @@ module.exports = {
   getSKUdetails,
   addSku,
   editSKU,
+  deleteSKU,
 };
