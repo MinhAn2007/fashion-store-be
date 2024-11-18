@@ -25,7 +25,22 @@ const getCategoriesDashboard = async (req, res) => {
   }
 };
 
+const addCategory = async (req, res) => {
+  try {
+    const category = req.body;
+    const id = await categoryService.addCategory(category);
+    res.status(200).json({
+      success: true,
+      id: id,
+    });
+  } catch (error) {
+    console.error("Error adding category:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
 module.exports = {
   getCategories,
   getCategoriesDashboard,
+  addCategory,
 };
