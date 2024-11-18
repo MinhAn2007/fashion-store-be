@@ -517,6 +517,84 @@ const getDashboardTotals = async () => {
   }
 };
 
+const getOrderDashboard = async () => {
+  try {
+    const orders = await knex('Order')
+      .select(
+        'Order.id',
+        'User.first_name',
+        'User.last_name',
+        'Order.status',
+        'Order.total',
+        'Order.created_at'
+      )
+      .join('User', 'Order.customer_id', 'User.id')
+      .orderBy('Order.created_at', 'desc');
+
+    const monthlyRevenue = await knex
+      .select(
+        knex.raw("DATE_FORMAT(created_at, '%Y-%m') AS month"),
+        knex.raw("SUM(total) AS total_revenue")
+      )
+      .from("Order")
+      .groupBy(knex.raw("DATE_FORMAT(created_at, '%Y-%m')"))
+      .orderBy("month");
+
+    const categoryStats = await knex
+      .select(
+        "Category.name as category_name",
+        "Category.id",
+        "Category.parent_id",
+        knex.raw("SUM(Product.sold) AS total_sold")
+      )
+      .from("Category")
+      .leftJoin("Product", "Category.id", "=", "Product.category_id")
+      .groupBy("Category.id")
+      .orderBy("total_sold", "desc");
+
+    const paymentStats = await knex('Order')
+      .select('Payment.payment_method')
+      .count('Order.id as count')
+      .join('Payment', 'Order.payment_id', 'Payment.id')
+      .groupBy('Payment.payment_method');
+    
+    const totalRevenue = orders.reduce((sum, order) => sum + parseInt(order.total), 0);
+    const returnedOrders = orders.filter(order => order.status === 'Returned');
+    const returnRate = ((returnedOrders.length / orders.length) * 100).toFixed(2);
+    const pendingOrders = orders.filter(order => order.status === 'Pending Confirmation').length;
+
+    const formattedOrders = orders.map(order => ({
+      id: order.id,
+      customerName: `${order.first_name} ${order.last_name}`,
+      status: order.status,
+      total: order.total,
+      createdAt: order.created_at
+    }));
+
+    const total = paymentStats.reduce((sum, item) => sum + parseInt(item.count), 0);
+    const formattedPaymentStats = paymentStats.map(item => ({
+      name: item.payment_method === 'ONLINE' ? 'Thanh toán Online' : 'Tiền mặt',
+      value: parseFloat((item.count / total * 100).toFixed(2))
+    }));
+
+    return {
+      stats: {
+        totalRevenue,
+        returnRate,
+        pendingOrders,
+        totalOrders: orders.length
+      },
+      monthlyRevenue,
+      categoryStats,
+      paymentStats: formattedPaymentStats,
+      orders: formattedOrders
+    };
+  } catch (error) {
+    throw new Error('Lỗi khi lấy dữ liệu dashboard');
+  }
+};
+
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
@@ -525,4 +603,5 @@ module.exports = {
   returnOrder,
   getDashboardTotals,
   getDashboardDetails,
+  getOrderDashboard,
 };

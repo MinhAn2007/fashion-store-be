@@ -142,6 +142,22 @@ const getDashboardDetails = async (req, res) => {
   }
 }
 
+const getOrderDashboard = async (req, res) => {
+  try {
+    const orders = await OrderService.getOrderDashboard();
+    res.status(200).json({
+      success: true,
+      data: orders,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin đơn hàng:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
@@ -149,5 +165,6 @@ module.exports = {
   updateOrderStatus,
   returnOrder,
   getOrderDashboardTotal,
-  getDashboardDetails
+  getDashboardDetails,
+  getOrderDashboard
 };
