@@ -387,21 +387,17 @@ const cancelOrder = async (orderId, cancellationReason) => {
 
 const updateOrderStatus = async (orderId, status) => {
   const trx = await knex.transaction();
-  
+
   try {
     // Get order details
-    const order = await trx("Order")
-      .where({ id: orderId })
-      .first();
+    const order = await trx("Order").where({ id: orderId }).first();
 
     if (!order) {
       throw new Error("Đơn hàng không tồn tại");
     }
 
     // Get user details
-    const user = await trx("User")
-      .where({ id: order.customer_id })
-      .first();
+    const user = await trx("User").where({ id: order.customer_id }).first();
 
     if (!user) {
       throw new Error("Người dùng không tồn tại");
@@ -410,12 +406,7 @@ const updateOrderStatus = async (orderId, status) => {
     // Get order items for email template
     const orderItems = await trx("OrderItem")
       .where({ order_id: orderId })
-      .join(
-        "Products_skus",
-        "OrderItem.product_id",
-        "=",
-        "Products_skus.id"
-      )
+      .join("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
       .join("Product", "Products_skus.product_id", "=", "Product.id")
       .select(
         "OrderItem.*",
@@ -427,9 +418,9 @@ const updateOrderStatus = async (orderId, status) => {
     const statusTime = mappingStatusTime(status);
     await trx("Order")
       .where({ id: orderId })
-      .update({ 
-        status, 
-        [statusTime]: new Date() 
+      .update({
+        status,
+        [statusTime]: new Date(),
       });
 
     // Format the date
@@ -679,9 +670,14 @@ const getDashboardTotals = async () => {
   }
 };
 
-const getOrderDashboard = async () => {
+const getOrderDashboard = async (startDateTime = null, endDateTime = null) => {
   try {
-    const orders = await knex("Order")
+
+    const startDate = startDateTime ? new Date(startDateTime).toISOString() : null;
+    const endDate = endDateTime ? new Date(endDateTime).toISOString() : null;
+    console.log(startDate);
+    console.log(endDate);
+    let ordersQuery = knex("Order")
       .select(
         "Order.id",
         "User.first_name",
@@ -690,19 +686,16 @@ const getOrderDashboard = async () => {
         "Order.total",
         "Order.created_at"
       )
-      .join("User", "Order.customer_id", "User.id")
-      .orderBy("Order.created_at", "desc");
+      .join("User", "Order.customer_id", "User.id");
 
-    const monthlyRevenue = await knex
+    let monthlyRevenueQuery = knex
       .select(
         knex.raw("DATE_FORMAT(created_at, '%Y-%m') AS month"),
         knex.raw("SUM(total) AS total_revenue")
       )
-      .from("Order")
-      .groupBy(knex.raw("DATE_FORMAT(created_at, '%Y-%m')"))
-      .orderBy("month");
+      .from("Order");
 
-    const categoryStats = await knex
+    let categoryStatsQuery = knex
       .select(
         "Category.name as category_name",
         "Category.id",
@@ -710,16 +703,57 @@ const getOrderDashboard = async () => {
         knex.raw("SUM(Product.sold) AS total_sold")
       )
       .from("Category")
-      .leftJoin("Product", "Category.id", "=", "Product.category_id")
-      .groupBy("Category.id")
-      .orderBy("total_sold", "desc");
+      .leftJoin("Product", "Category.id", "=", "Product.category_id");
 
-    const paymentStats = await knex("Order")
+    let paymentStatsQuery = knex("Order")
       .select("Payment.payment_method")
       .count("Order.id as count")
-      .join("Payment", "Order.payment_id", "Payment.id")
-      .groupBy("Payment.payment_method");
+      .join("Payment", "Order.payment_id", "Payment.id");
 
+    // Add date filtering if start and end dates are provided
+    if (startDate && endDate) {
+      ordersQuery = ordersQuery
+        .where("Order.created_at", ">=", startDate)
+        .where("Order.created_at", "<=", endDate);
+
+      monthlyRevenueQuery = monthlyRevenueQuery
+        .where("created_at", ">=", startDate)
+        .where("created_at", "<=", endDate);
+
+      categoryStatsQuery = categoryStatsQuery.whereExists(
+        knex
+          .select("*")
+          .from("Product")
+          .whereRaw("Product.category_id = Category.id")
+          .whereExists(
+            knex
+              .select("*")
+              .from("OrderItem")
+              .join("Order", "OrderItem.order_id", "Order.id")
+              .whereRaw("OrderItem.product_id = Product.id")
+              .where("Order.created_at", ">=", startDate)
+              .where("Order.created_at", "<=", endDate)
+          )
+      );
+
+      paymentStatsQuery = paymentStatsQuery
+        .where("Order.created_at", ">=", startDate)
+        .where("Order.created_at", "<=", endDate);
+    }
+
+    // Execute queries
+    const orders = await ordersQuery.orderBy("Order.created_at", "desc");
+    const monthlyRevenue = await monthlyRevenueQuery
+      .groupBy(knex.raw("DATE_FORMAT(created_at, '%Y-%m')"))
+      .orderBy("month");
+    const categoryStats = await categoryStatsQuery
+      .groupBy("Category.id")
+      .orderBy("total_sold", "desc");
+    const paymentStats = await paymentStatsQuery.groupBy(
+      "Payment.payment_method"
+    );
+
+    // Calculate statistics
     const totalRevenue = orders.reduce(
       (sum, order) => sum + parseInt(order.total),
       0
@@ -727,9 +761,10 @@ const getOrderDashboard = async () => {
     const returnedOrders = orders.filter(
       (order) => order.status === "Returned"
     );
-    const returnRate = ((returnedOrders.length / orders.length) * 100).toFixed(
-      2
-    );
+    const returnRate =
+      orders.length > 0
+        ? ((returnedOrders.length / orders.length) * 100).toFixed(2)
+        : 0;
     const pendingOrders = orders.filter(
       (order) => order.status === "Pending Confirmation"
     ).length;
@@ -748,7 +783,8 @@ const getOrderDashboard = async () => {
     );
     const formattedPaymentStats = paymentStats.map((item) => ({
       name: item.payment_method === "ONLINE" ? "Thanh toán Online" : "Tiền mặt",
-      value: parseFloat(((item.count / total) * 100).toFixed(2)),
+      value:
+        total > 0 ? parseFloat(((item.count / total) * 100).toFixed(2)) : 0,
     }));
 
     return {

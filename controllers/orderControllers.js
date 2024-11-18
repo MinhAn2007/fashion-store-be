@@ -144,8 +144,15 @@ const getDashboardDetails = async (req, res) => {
 
 const getOrderDashboard = async (req, res) => {
   try {
-    const orders = await OrderService.getOrderDashboard();
-    res.status(200).json({
+    console.log(req.query);
+    
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+    console.log(startDate);
+    console.log(endDate);
+    
+    const orders = await OrderService.getOrderDashboard(startDate, endDate);
+        res.status(200).json({
       success: true,
       data: orders,
     });
