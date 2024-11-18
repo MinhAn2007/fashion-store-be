@@ -388,9 +388,12 @@ const cancelOrder = async (orderId, cancellationReason) => {
 const updateOrderStatus = async (orderId, status) => {
   try {
     const statusTime = mappingStatusTime(status);
+    console.log("statusTime", statusTime);
+
     await knex("Order")
       .where({ id: orderId })
       .update({ status, [statusTime]: new Date() });
+    console.log("status", status);
 
     return {
       success: true,
@@ -454,7 +457,7 @@ const getDashboardDetails = async () => {
       .groupBy(knex.raw("DATE_FORMAT(o.created_at, '%Y-%m')"))
       .orderBy("month");
 
-      const monthlyQuantity = await trx
+    const monthlyQuantity = await trx
       .select(
         "c.name as category_name",
         "c.id as id",
@@ -465,9 +468,8 @@ const getDashboardDetails = async () => {
       .leftJoin("Product as p", "c.id", "=", "p.category_id")
       .groupBy("c.id")
       .orderByRaw("total_sold DESC");
-    
-      console.log(monthlyQuantity);
-      
+
+    console.log(monthlyQuantity);
 
     const bestSellingProducts = await trx
       .select(
@@ -519,17 +521,17 @@ const getDashboardTotals = async () => {
 
 const getOrderDashboard = async () => {
   try {
-    const orders = await knex('Order')
+    const orders = await knex("Order")
       .select(
-        'Order.id',
-        'User.first_name',
-        'User.last_name',
-        'Order.status',
-        'Order.total',
-        'Order.created_at'
+        "Order.id",
+        "User.first_name",
+        "User.last_name",
+        "Order.status",
+        "Order.total",
+        "Order.created_at"
       )
-      .join('User', 'Order.customer_id', 'User.id')
-      .orderBy('Order.created_at', 'desc');
+      .join("User", "Order.customer_id", "User.id")
+      .orderBy("Order.created_at", "desc");
 
     const monthlyRevenue = await knex
       .select(
@@ -552,29 +554,41 @@ const getOrderDashboard = async () => {
       .groupBy("Category.id")
       .orderBy("total_sold", "desc");
 
-    const paymentStats = await knex('Order')
-      .select('Payment.payment_method')
-      .count('Order.id as count')
-      .join('Payment', 'Order.payment_id', 'Payment.id')
-      .groupBy('Payment.payment_method');
-    
-    const totalRevenue = orders.reduce((sum, order) => sum + parseInt(order.total), 0);
-    const returnedOrders = orders.filter(order => order.status === 'Returned');
-    const returnRate = ((returnedOrders.length / orders.length) * 100).toFixed(2);
-    const pendingOrders = orders.filter(order => order.status === 'Pending Confirmation').length;
+    const paymentStats = await knex("Order")
+      .select("Payment.payment_method")
+      .count("Order.id as count")
+      .join("Payment", "Order.payment_id", "Payment.id")
+      .groupBy("Payment.payment_method");
 
-    const formattedOrders = orders.map(order => ({
+    const totalRevenue = orders.reduce(
+      (sum, order) => sum + parseInt(order.total),
+      0
+    );
+    const returnedOrders = orders.filter(
+      (order) => order.status === "Returned"
+    );
+    const returnRate = ((returnedOrders.length / orders.length) * 100).toFixed(
+      2
+    );
+    const pendingOrders = orders.filter(
+      (order) => order.status === "Pending Confirmation"
+    ).length;
+
+    const formattedOrders = orders.map((order) => ({
       id: order.id,
       customerName: `${order.first_name} ${order.last_name}`,
       status: order.status,
       total: order.total,
-      createdAt: order.created_at
+      createdAt: order.created_at,
     }));
 
-    const total = paymentStats.reduce((sum, item) => sum + parseInt(item.count), 0);
-    const formattedPaymentStats = paymentStats.map(item => ({
-      name: item.payment_method === 'ONLINE' ? 'Thanh toán Online' : 'Tiền mặt',
-      value: parseFloat((item.count / total * 100).toFixed(2))
+    const total = paymentStats.reduce(
+      (sum, item) => sum + parseInt(item.count),
+      0
+    );
+    const formattedPaymentStats = paymentStats.map((item) => ({
+      name: item.payment_method === "ONLINE" ? "Thanh toán Online" : "Tiền mặt",
+      value: parseFloat(((item.count / total) * 100).toFixed(2)),
     }));
 
     return {
@@ -582,29 +596,24 @@ const getOrderDashboard = async () => {
         totalRevenue,
         returnRate,
         pendingOrders,
-        totalOrders: orders.length
+        totalOrders: orders.length,
       },
       monthlyRevenue,
       categoryStats,
       paymentStats: formattedPaymentStats,
-      orders: formattedOrders
+      orders: formattedOrders,
     };
   } catch (error) {
-    throw new Error('Lỗi khi lấy dữ liệu dashboard');
+    throw new Error("Lỗi khi lấy dữ liệu dashboard");
   }
 };
 
-
-const getOrderDetails = async (orderId) => {  
+const getOrderDetails = async (orderId) => {
   try {
     // Fetch the order with all necessary details
+
     const order = await knex("Order")
-      .select(
-        "Order.*",
-        "User.first_name",
-        "User.last_name",
-        "User.email",
-      )
+      .select("Order.*", "User.first_name", "User.last_name", "User.email")
       .join("User", "Order.customer_id", "=", "User.id")
       .where("Order.id", orderId)
       .first();
@@ -628,20 +637,22 @@ const getOrderDetails = async (orderId) => {
 
     // Calculate shipping and discounts
     const shippingFee = 30000;
-    const onlinePaymentDiscount = order.payment_id === 1 ? 50000 : 0;
-    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const total = subtotal + shippingFee - onlinePaymentDiscount;
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
 
-    // Calculate estimated delivery (5 days from order creation)
     const createdAt = new Date(order.created_at);
     const estimatedDelivery = new Date(createdAt);
     estimatedDelivery.setDate(createdAt.getDate() + 5);
 
     // Fetch payment method
-    const payment = await knex("Payment")
-      .where("id", order.payment_id)
-      .first();
+    const payment = await knex("Payment").where("id", order.payment_id).first();
 
+    const updateAt = mappingStatusTime(order.status);
+    console.log("order", order);
+    
+    console.log("updateAt", order[updateAt]);
     return {
       id: order.id,
       status: order.status,
@@ -650,14 +661,14 @@ const getOrderDetails = async (orderId) => {
       phone: order.phone_number,
       address: order.address,
       createdAt: order.created_at,
-      updatedAt: order.updated_at,
+      updatedAt: order[updateAt],
       paymentMethod: payment ? payment.payment_method : "Unknown",
       shipping: {
         method: "Express",
         fee: shippingFee,
-        estimatedDelivery: estimatedDelivery.toISOString()
+        estimatedDelivery: estimatedDelivery.toISOString(),
       },
-      items: items.map(item => ({
+      items: items.map((item) => ({
         id: item.product_id,
         name: item.name,
         sku: item.sku,
@@ -665,18 +676,18 @@ const getOrderDetails = async (orderId) => {
         quantity: item.quantity,
         size: item.size,
         color: item.color,
-        image: item.image
+        image: item.image,
       })),
       subtotal,
-      shippingFee,
-      discount: onlinePaymentDiscount,
-      total
+      shippingFee: parseInt(order.shipping_fee),
+      discount: order.payment_id === 0 ? 50000 : 0,
+      total: order.total,
     };
   } catch (error) {
     console.error("Error fetching order details:", error);
     throw new Error(error.message);
   }
-}
+};
 
 module.exports = {
   createOrder,
@@ -687,5 +698,5 @@ module.exports = {
   getDashboardTotals,
   getDashboardDetails,
   getOrderDashboard,
-  getOrderDetails
+  getOrderDetails,
 };

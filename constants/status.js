@@ -2,16 +2,16 @@ const mappingStatusTime = (status) => {
   switch (status) {
     case "Pending Confirmation":
       return "created_at";
-    case "Shipping":
-      return "delivery_at";
     case "Completed":
       return "completed_at";
     case "Cancelled":
       return "canceled_at";
     case "Returned":
       return "return_at";
-    default:
+    case "In Transit":
       return "shipping_at";
+    default:
+      return "delivery_at";
   }
 };
 
