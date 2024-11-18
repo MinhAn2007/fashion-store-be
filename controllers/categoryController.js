@@ -39,8 +39,23 @@ const addCategory = async (req, res) => {
   }
 }
 
+const editCategory = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const category = req.body;
+    await categoryService.editCategory(category,id);
+    res.status(200).json({
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error updating category:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
 module.exports = {
   getCategories,
   getCategoriesDashboard,
   addCategory,
+  editCategory,
 };

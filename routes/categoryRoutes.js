@@ -10,4 +10,6 @@ router.get('/categories/dashboard', CategoryController.getCategoriesDashboard);
 
 router.post('/categories', CategoryController.addCategory);
 
+router.put('/categories/:id', CategoryController.editCategory);
+
 module.exports = router;

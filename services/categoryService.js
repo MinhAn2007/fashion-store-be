@@ -20,6 +20,7 @@ const getCategoriesDashboard = async () => {
         "c.status",
         "c.created_at",
         "parent.name as parent_category_name",
+        "parent.id as parent_category_id",
         knex.raw("COUNT(DISTINCT p.id) as total_products"),
         knex.raw(`
             COALESCE(SUM(
@@ -68,6 +69,7 @@ const getCategoriesDashboard = async () => {
         name: category.name,
         description: category.description,
         parentCategory: category.parent_category_name || "—",
+        parentCategoryId: category.parent_category_id || null,
         totalProducts: parseInt(category.total_products),
         status: category.status === 1 ? "active" : "inactive",
         revenue: parseFloat(category.revenue),
@@ -95,8 +97,19 @@ const addCategory = async (category) => {
     throw error;
   }
 };
+
+const editCategory = async (category,id) => {
+  try {
+    await knex("Category").where("id", id).update(category);
+  } catch (error) {
+    console.error("Error updating category:", error);
+    throw error;
+  }
+}
+
 module.exports = {
   getListCategory,
   getCategoriesDashboard,
   addCategory,
+  editCategory,
 };
