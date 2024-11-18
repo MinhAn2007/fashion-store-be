@@ -158,6 +158,23 @@ const getOrderDashboard = async (req, res) => {
   }
 };
 
+const getOrderDetails = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const order = await OrderService.getOrderDetails(orderId);
+    res.status(200).json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin đơn hàng:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
@@ -166,5 +183,6 @@ module.exports = {
   returnOrder,
   getOrderDashboardTotal,
   getDashboardDetails,
-  getOrderDashboard
+  getOrderDashboard,
+  getOrderDetails,
 };

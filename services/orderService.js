@@ -595,6 +595,89 @@ const getOrderDashboard = async () => {
 };
 
 
+const getOrderDetails = async (orderId) => {  
+  try {
+    // Fetch the order with all necessary details
+    const order = await knex("Order")
+      .select(
+        "Order.*",
+        "User.first_name",
+        "User.last_name",
+        "User.email",
+      )
+      .join("User", "Order.customer_id", "=", "User.id")
+      .where("Order.id", orderId)
+      .first();
+
+    if (!order) {
+      throw new Error("Đơn hàng không tồn tại");
+    }
+
+    // Fetch order items with product details
+    const items = await knex("OrderItem")
+      .select(
+        "OrderItem.*",
+        "Products_skus.size",
+        "Products_skus.color",
+        "Products_skus.image",
+        "Product.name"
+      )
+      .join("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
+      .join("Product", "Products_skus.product_id", "=", "Product.id")
+      .where("OrderItem.order_id", orderId);
+
+    // Calculate shipping and discounts
+    const shippingFee = 30000;
+    const onlinePaymentDiscount = order.payment_id === 1 ? 50000 : 0;
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = subtotal + shippingFee - onlinePaymentDiscount;
+
+    // Calculate estimated delivery (5 days from order creation)
+    const createdAt = new Date(order.created_at);
+    const estimatedDelivery = new Date(createdAt);
+    estimatedDelivery.setDate(createdAt.getDate() + 5);
+
+    // Fetch payment method
+    const payment = await knex("Payment")
+      .where("id", order.payment_id)
+      .first();
+
+    return {
+      id: order.id,
+      status: order.status,
+      customerName: `${order.first_name} ${order.last_name}`,
+      email: order.email,
+      phone: order.phone_number,
+      address: order.address,
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+      paymentMethod: payment ? payment.payment_method : "Unknown",
+      shipping: {
+        method: "Express",
+        fee: shippingFee,
+        estimatedDelivery: estimatedDelivery.toISOString()
+      },
+      items: items.map(item => ({
+        id: item.product_id,
+        name: item.name,
+        sku: item.sku,
+        price: item.price,
+        quantity: item.quantity,
+        size: item.size,
+        color: item.color,
+        image: item.image
+      })),
+      subtotal,
+      shippingFee,
+      discount: onlinePaymentDiscount,
+      total
+    };
+  } catch (error) {
+    console.error("Error fetching order details:", error);
+    throw new Error(error.message);
+  }
+}
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
@@ -604,4 +687,5 @@ module.exports = {
   getDashboardTotals,
   getDashboardDetails,
   getOrderDashboard,
+  getOrderDetails
 };

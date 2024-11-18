@@ -2,7 +2,7 @@
 
 const express = require("express");
 const router = express.Router();
-const { createOrder , getOrdersWithDetails , cancelOrder, updateOrderStatus, returnOrder, getOrderDashboardTotal, getDashboardDetails ,getOrderDashboard} = require("../controllers/orderControllers");
+const { createOrder , getOrdersWithDetails , cancelOrder, updateOrderStatus, returnOrder, getOrderDashboardTotal, getDashboardDetails ,getOrderDashboard ,getOrderDetails} = require("../controllers/orderControllers");
 
 // Route để tạo đơn hàng
 router.post("/orders", createOrder);
@@ -20,5 +20,7 @@ router.get("/orders/dashboard/total", getOrderDashboardTotal);
 router.get("/orders/dashboard/details", getDashboardDetails);
 
 router.get("/orders/dashboard", getOrderDashboard);
+
+router.get("/orders/:id", getOrderDetails);
 
 module.exports = router;
