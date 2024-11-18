@@ -7,7 +7,7 @@ const mappingStatusTime = (status) => {
     case "Cancelled":
       return "canceled_at";
     case "Returned":
-      return "return_at";
+      return "returned_at";
     case "In Transit":
       return "shipping_at";
     default:

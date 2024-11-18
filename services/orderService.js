@@ -386,25 +386,185 @@ const cancelOrder = async (orderId, cancellationReason) => {
 };
 
 const updateOrderStatus = async (orderId, status) => {
+  const trx = await knex.transaction();
+  
   try {
-    const statusTime = mappingStatusTime(status);
-    console.log("statusTime", statusTime);
-
-    await knex("Order")
+    // Get order details
+    const order = await trx("Order")
       .where({ id: orderId })
-      .update({ status, [statusTime]: new Date() });
-    console.log("status", status);
+      .first();
+
+    if (!order) {
+      throw new Error("Đơn hàng không tồn tại");
+    }
+
+    // Get user details
+    const user = await trx("User")
+      .where({ id: order.customer_id })
+      .first();
+
+    if (!user) {
+      throw new Error("Người dùng không tồn tại");
+    }
+
+    // Get order items for email template
+    const orderItems = await trx("OrderItem")
+      .where({ order_id: orderId })
+      .join(
+        "Products_skus",
+        "OrderItem.product_id",
+        "=",
+        "Products_skus.id"
+      )
+      .join("Product", "Products_skus.product_id", "=", "Product.id")
+      .select(
+        "OrderItem.*",
+        "Product.name as product_name",
+        "Products_skus.image"
+      );
+
+    // Update order status and timestamp
+    const statusTime = mappingStatusTime(status);
+    await trx("Order")
+      .where({ id: orderId })
+      .update({ 
+        status, 
+        [statusTime]: new Date() 
+      });
+
+    // Format the date
+    const orderDate = new Date().toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    // Format currency
+    const formatCurrency = (amount) => {
+      return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+      }).format(amount);
+    };
+
+    // Create HTML email template
+    const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background-color: #f8f9fa;
+          padding: 20px;
+          text-align: center;
+          border-radius: 5px;
+        }
+        .order-info {
+          margin: 20px 0;
+          padding: 15px;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+        }
+        .product-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 20px 0;
+        }
+        .product-table th, .product-table td {
+          padding: 10px;
+          border: 1px solid #ddd;
+          text-align: left;
+        }
+        .status-update {
+          font-weight: bold;
+          color: #007bff;
+          text-align: center;
+          margin: 20px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>Cập nhật trạng thái đơn hàng A&L Shop</h2>
+          <p>Mã đơn hàng: #${orderId}</p>
+        </div>
+        
+        <p>Chào ${user.first_name} ${user.last_name},</p>
+        
+        <div class="status-update">
+          <h3>Trạng thái đơn hàng đã được cập nhật:</h3>
+          <p>${status}</p>
+        </div>
+        
+        <div class="order-info">
+          <p><strong>Ngày cập nhật:</strong> ${orderDate}</p>
+        </div>
+
+        <table class="product-table">
+          <thead>
+            <tr>
+              <th>Sản phẩm</th>
+              <th>Số lượng</th>
+              <th>Đơn giá</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orderItems
+              .map(
+                (item) => `  
+              <tr>
+                <td>${item.product_name}</td>
+                <td>${item.quantity}</td>
+                <td>${formatCurrency(item.price)}</td>
+              </tr>
+            `
+              )
+              .join("")}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi qua email: support@alshop.com</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    // Send email
+    await mailSender(
+      user.email,
+      `Cập nhật trạng thái đơn hàng #${orderId}`,
+      emailHtml
+    );
+
+    // Commit the transaction
+    await trx.commit();
 
     return {
       success: true,
-      message: "Đã cập nhật trạng thái đơn hàng",
+      message: "Đã cập nhật trạng thái đơn hàng và gửi email thông báo",
     };
   } catch (error) {
+    // Rollback transaction in case of error
+    await trx.rollback();
     console.error("Error updating order status:", error);
     throw new Error(error.message);
   }
 };
-
 const returnOrder = async (orderId, returnReason) => {
   try {
     // Lấy thông tin đơn hàng trước khi hủy
@@ -650,9 +810,7 @@ const getOrderDetails = async (orderId) => {
     const payment = await knex("Payment").where("id", order.payment_id).first();
 
     const updateAt = mappingStatusTime(order.status);
-    console.log("order", order);
-    
-    console.log("updateAt", order[updateAt]);
+
     return {
       id: order.id,
       status: order.status,
@@ -679,6 +837,8 @@ const getOrderDetails = async (orderId) => {
         image: item.image,
       })),
       subtotal,
+      returnReason: order.return_reason,
+      cancelReason: order.cancel_reason,
       shippingFee: parseInt(order.shipping_fee),
       discount: order.payment_id === 0 ? 50000 : 0,
       total: order.total,
