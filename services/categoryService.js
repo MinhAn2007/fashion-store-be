@@ -12,7 +12,6 @@ const getCategoriesDashboard = async () => {
       .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
       .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
       .leftJoin("Order as o", "oi.order_id", "o.id")
-      .whereNull("c.deleted_at")
       .select([
         "c.id",
         "c.name",
@@ -107,9 +106,19 @@ const editCategory = async (category,id) => {
   }
 }
 
+const deleteCategory = async (id) => {
+  try {
+    await knex("Category").where("id", id).update({deleted_at: new Date(),status: 0});
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    throw error;
+  }
+}
+
 module.exports = {
   getListCategory,
   getCategoriesDashboard,
   addCategory,
   editCategory,
+  deleteCategory,
 };

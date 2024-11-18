@@ -53,9 +53,23 @@ const editCategory = async (req, res) => {
   }
 }
 
+const deleteCategory = async (req, res) => {
+  try {
+    const id = req.params.id;
+    await categoryService.deleteCategory(id);
+    res.status(200).json({
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error deleting category:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
+
 module.exports = {
   getCategories,
   getCategoriesDashboard,
   addCategory,
   editCategory,
+  deleteCategory,
 };
