@@ -608,6 +608,18 @@ const getDashboardDetails = async () => {
       .groupBy(knex.raw("DATE_FORMAT(o.created_at, '%Y-%m')"))
       .orderBy("month");
 
+      // knex("OrderItem ")
+      // .join("Order", "OrderItem.order_id", "Order.id")
+      // .join("Product", "OrderItem.product_id", "Product.id")
+      // .join("Category", "Product.category_id", "Category.id")
+      // .select(
+      //   "Category.name",
+      //   "Category.id",
+      //   "Category.parent_id",
+      //   knex.raw("SUM(quantity * price) as category_sales")
+      // )
+      // .where("Order.status", "Completed")
+      // .groupBy("Category.id");
     const monthlyQuantity = await trx
       .select(
         "c.name as category_name",
@@ -617,6 +629,10 @@ const getDashboardDetails = async () => {
       )
       .from("Category as c")
       .leftJoin("Product as p", "c.id", "=", "p.category_id")
+      .leftJoin("OrderItem as oi", "p.id", "=", "oi.product_id")
+      .leftJoin("Order as o", "oi.order_id", "=", "o.id")
+      
+      .where("o.status", "Completed")
       .groupBy("c.id")
       .orderByRaw("total_sold DESC");
 

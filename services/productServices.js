@@ -565,6 +565,7 @@ const getSKUdetails = async (productId) => {
 
     .leftJoin('Product as p', 'sku.product_id', 'p.id')
     .leftJoin('OrderItem as oi', 'sku.id', 'oi.product_id')
+    .leftJoin('Order as o', 'oi.order_id', 'o.id')
     .select(
       'sku.*',
       'p.name as product_name',
@@ -573,6 +574,7 @@ const getSKUdetails = async (productId) => {
       knex.raw('SUM(oi.quantity) as total_sold')
     )
     .where('p.id', productId)
+    .where('o.status', 'completed')
     .groupBy('sku.id')
     .first();
 
@@ -606,6 +608,8 @@ const getSKUdetails = async (productId) => {
         knex.raw('SUM(oi.quantity * oi.price) as revenue')
       )
       .leftJoin('Products_skus as sku', 'oi.product_id', 'sku.id')
+      .leftJoin('Order as o', 'oi.order_id', 'o.id')
+      .where('o.status', 'completed')
       .where('sku.product_id', skuWithProduct.product_id)
       .groupBy('sku.id', 'sku.size', 'sku.color', 'sku.price');
 
@@ -759,7 +763,6 @@ const getProductStats = async (timeRange) => {
         knex.raw("SUM(oi.quantity) as total_quantity"),
         knex.raw("SUM(o.total) as total_revenue")
       )
-      .where("o.status", "completed")
       .whereBetween("o.created_at", [startDate, endDate || new Date()])
       .groupBy(knex.raw("DATE_FORMAT(o.created_at, '%Y-%m')"))
       .orderBy("period", "asc");
@@ -842,6 +845,7 @@ const getProductRevenueStats = async (timeRange) => {
     .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
     .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
     .leftJoin("Category as c", "p.category_id", "c.id")
+    .leftJoin("Order as o", "oi.order_id", "o.id")
     .select(
       "p.id as id",
       "p.name as name",
@@ -855,9 +859,10 @@ const getProductRevenueStats = async (timeRange) => {
         FROM Products_skus
         WHERE product_id = p.id
       ) as stock_quantity`),
-      knex.raw("COALESCE(SUM(oi.quantity), 0) as sold_quantity"),
+      knex.raw("COALESCE(SUM(p.sold), 0) as sold_quantity"),
       knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue")
     )
+    .where('o.status', 'completed')
     .groupBy("p.id", "c.id", "p.name", "p.collection", "p.description", "p.status")
     .orderBy("id", "asc");
 
