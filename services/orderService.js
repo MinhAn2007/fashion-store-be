@@ -63,10 +63,9 @@ const createOrder = async (
         price: productSku.price,
         image: productSku.product_image,
       });
-
-      // Insert order item
+      // Insert order order
       await trx("OrderItem").insert({
-        order_id: order.id,
+        order_id: order,
         product_id: productSku.id,
         name: productSku.sku,
         quantity: item.quantity,
@@ -631,7 +630,7 @@ const getDashboardDetails = async () => {
       .leftJoin("Product as p", "c.id", "=", "p.category_id")
       .leftJoin("OrderItem as oi", "p.id", "=", "oi.product_id")
       .leftJoin("Order as o", "oi.order_id", "=", "o.id")
-      
+
       .where("o.status", "Completed")
       .groupBy("c.id")
       .orderByRaw("total_sold DESC");
