@@ -211,7 +211,9 @@ const getInventoryStats = async (req, res) => {
 
 const getProductStats = async (req, res) => {
   try {
-    const productStats = await productService.getProductStats();
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+    const productStats = await productService.getProductStats(startDate,endDate);
 
     res.status(200).json(productStats);
   } catch (error) {
@@ -222,7 +224,9 @@ const getProductStats = async (req, res) => {
 
 const getProductRevenueStats = async (req, res) => {
   try {
-    const productRevenueStats = await productService.getProductRevenueStats();
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+    const productRevenueStats = await productService.getProductRevenueStats(startDate,endDate);
 
     res.status(200).json(productRevenueStats);
   } catch (error) {

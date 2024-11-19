@@ -62,13 +62,22 @@ const getDashboardOverview = async (
         .where("OrderItem.created_at", "<=", endDate);
     }
 
-    // Execute queries
+    const ordersByStatus = await knex("Order")
+    .select(
+        "status", 
+        knex.raw("COUNT(*) as total_orders"),
+        knex.raw("SUM(total) as total_revenue"),
+        knex.raw("AVG(total) as average_order_value")
+    )
+    .groupBy("status");
+
     const [
       totalRevenueResult,
       totalOrdersResult,
       averageOrderValueResult,
       monthlyRevenue,
       salesByCategory,
+      ordersByStatusResult
     ] = await Promise.all([
       totalRevenueQuery.first(),
       totalOrdersQuery.first(),
@@ -79,6 +88,7 @@ const getDashboardOverview = async (
       salesByCategoryQuery
         .groupBy("Category.id", "Category.name")
         .orderBy("category_sales", "desc"),
+        ordersByStatus
     ]);
 
     // Calculate growth rates
@@ -97,6 +107,7 @@ const getDashboardOverview = async (
       monthlyRevenue,
       salesByCategory,
       growthRates,
+      ordersByStatusResult
     };
   } catch (error) {
     console.error("Error fetching dashboard overview:", error);
