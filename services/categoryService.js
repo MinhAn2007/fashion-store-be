@@ -1,7 +1,7 @@
 const knex = require("../config/database").db;
 
 const getListCategory = async () => {
-  return await knex("Category").select("*");
+  return await knex("Category").select("*").where("status", 1);
 };
 const getCategoriesDashboard = async () => {
   try {
@@ -97,23 +97,25 @@ const addCategory = async (category) => {
   }
 };
 
-const editCategory = async (category,id) => {
+const editCategory = async (category, id) => {
   try {
     await knex("Category").where("id", id).update(category);
   } catch (error) {
     console.error("Error updating category:", error);
     throw error;
   }
-}
+};
 
 const deleteCategory = async (id) => {
   try {
-    await knex("Category").where("id", id).update({deleted_at: new Date(),status: 0});
+    await knex("Category")
+      .where("id", id)
+      .update({ deleted_at: new Date(), status: 0 });
   } catch (error) {
     console.error("Error deleting category:", error);
     throw error;
   }
-}
+};
 
 module.exports = {
   getListCategory,

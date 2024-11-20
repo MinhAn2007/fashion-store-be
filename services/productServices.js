@@ -60,6 +60,7 @@ const getProductById = async (productId) => {
       .where("p.id", productId)
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
+      .where("c.status", 1) 
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
@@ -274,6 +275,7 @@ const getAllProducts = async (limit = 10, offset = 0) => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
+      .where("c.status", 1) 
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
@@ -330,6 +332,7 @@ const getBestsellerProducts = async (limit = 10, offset = 0) => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
+      .where("c.status", 1) 
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
@@ -387,6 +390,7 @@ const getProductsByPrice = async (min, max) => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
+      .where("c.status", 1) 
       .whereBetween("ps.price", [min, max])
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
@@ -441,6 +445,7 @@ const getNewProducts = async () => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
+      .where("c.status", 1) 
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
@@ -497,7 +502,7 @@ const getProductsByCollection = async (collection) => {
       .whereNull("ps.deleted_at")
       .where("p.collection", collection)
       .where("p.status", 1) // Assuming status 1 means active
-
+      .where("c.status", 1) 
       .groupBy(
         "p.id",
         "p.name",
@@ -552,7 +557,7 @@ const searchProducts = async (keyword) => {
       .whereNull("ps.deleted_at")
       .where("p.name", "like", `%${keyword}%`)
       .where("p.status", 1) // Assuming status 1 means active
-
+      .where("c.status", 1) 
       .groupBy(
         "p.id",
         "p.name",
