@@ -607,18 +607,18 @@ const getDashboardDetails = async () => {
       .groupBy(knex.raw("DATE_FORMAT(o.created_at, '%Y-%m')"))
       .orderBy("month");
 
-      // knex("OrderItem ")
-      // .join("Order", "OrderItem.order_id", "Order.id")
-      // .join("Product", "OrderItem.product_id", "Product.id")
-      // .join("Category", "Product.category_id", "Category.id")
-      // .select(
-      //   "Category.name",
-      //   "Category.id",
-      //   "Category.parent_id",
-      //   knex.raw("SUM(quantity * price) as category_sales")
-      // )
-      // .where("Order.status", "Completed")
-      // .groupBy("Category.id");
+    // knex("OrderItem ")
+    // .join("Order", "OrderItem.order_id", "Order.id")
+    // .join("Product", "OrderItem.product_id", "Product.id")
+    // .join("Category", "Product.category_id", "Category.id")
+    // .select(
+    //   "Category.name",
+    //   "Category.id",
+    //   "Category.parent_id",
+    //   knex.raw("SUM(quantity * price) as category_sales")
+    // )
+    // .where("Order.status", "Completed")
+    // .groupBy("Category.id");
     const monthlyQuantity = await trx
       .select(
         "c.name as category_name",
@@ -673,11 +673,78 @@ const getDashboardTotals = async () => {
 
     const totalOrders = await knex("Order").count("id as totalOrders").first();
 
+    const activities = await knex
+      .select(
+        knex.raw(`* FROM (
+      SELECT 
+        'Đơn hàng' as type, 
+        id,
+        created_at,
+        CONCAT('Đơn hàng mới #', id, ' - ', 
+          CASE status
+            WHEN 'Pending Confirmation' THEN 'Chờ xác nhận'
+            WHEN 'Completed' THEN 'Đã hoàn thành'
+            WHEN 'Cancelled' THEN 'Đã hủy'
+            WHEN 'Returned' THEN 'Đã trả hàng'
+            WHEN 'In Transit' THEN 'Đang giao hàng'
+            ELSE 'Đã giao hàng'
+          END,
+          ' - ', total, ' VNĐ') as description
+      FROM \`Order\`
+   
+      UNION ALL 
+   
+      SELECT 
+        'Đánh giá' as type,
+        id, 
+        created_at,
+        CONCAT('Đánh giá mới #', id, ' - ', rating, ' sao - ', title) as description
+      FROM Review
+   
+      UNION ALL
+   
+      SELECT 
+        'Sản phẩm' as type,
+        id,
+        created_at, 
+        CONCAT('Sản phẩm mới #', id, ' - ', name) as description
+      FROM Product
+   
+      UNION ALL
+   
+      SELECT 
+        'Người dùng' as type,
+        id,
+        created_at,
+        CONCAT('Người dùng mới #', id, ' - ', first_name, ' ', last_name) as description  
+      FROM User
+   
+      UNION ALL
+   
+      SELECT 
+        'SKU' as type,
+        id,
+        created_at,
+        CONCAT('SKU mới #', id, ' - Size: ', size, ' - Màu: ', color) as description
+      FROM Products_skus
+    ) as activities`)
+      )
+      .orderBy("created_at", "desc")
+      .limit(3);
+
+    const orderNeedAction = await knex("Order")
+      .select("*")
+      .where("Order.status", "Pending Confirmation")
+      .orWhere("Order.status", "Returned")
+      .orderBy("Order.created_at", "desc")
+      .limit(3);
     return {
       totalSales: totalSales.totalSales || 0,
       productsSold: productsSold.productsSold || 0,
       newCustomers: newCustomers.newCustomers || 0,
       totalOrders: totalOrders.totalOrders || 0,
+      activities,
+      orderNeedAction,
     };
   } catch (error) {
     console.error("Error getting dashboard totals:", error);
@@ -687,8 +754,9 @@ const getDashboardTotals = async () => {
 
 const getOrderDashboard = async (startDateTime = null, endDateTime = null) => {
   try {
-
-    const startDate = startDateTime ? new Date(startDateTime).toISOString() : null;
+    const startDate = startDateTime
+      ? new Date(startDateTime).toISOString()
+      : null;
     const endDate = endDateTime ? new Date(endDateTime).toISOString() : null;
     console.log(startDate);
     console.log(endDate);

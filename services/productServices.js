@@ -13,6 +13,8 @@ const getProductsWithPaging = async (limit, offset) => {
         knex.raw(`JSON_ARRAYAGG(a.path) as cover`)
       )
       .where("p.deleted_at", null)
+      .where("p.status", 1) // Assuming status 1 means active
+
       .groupBy("p.id", "p.name")
       .having(knex.raw("COUNT(a.id) > 0"))
       .limit(limit)
@@ -58,6 +60,7 @@ const getProductById = async (productId) => {
       .where("p.id", productId)
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
+      .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
         "p.name",
@@ -147,7 +150,9 @@ const getProductsByCategory = async (categoryId) => {
       )
       .innerJoin("Product as p", "c.id", "=", "p.category_id") // Change LEFT JOIN to INNER JOIN
       .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id") // Keep this as LEFT JOIN
-      .leftJoin("Review as r", "p.id", "=", "r.product_id"); // Keep this as LEFT JOIN
+      .leftJoin("Review as r", "p.id", "=", "r.product_id")
+      .where("p.status", 1) // Assuming status 1 means active
+
 
     // Apply category filter
     if (categoryId) {
@@ -269,6 +274,7 @@ const getAllProducts = async (limit = 10, offset = 0) => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
+      .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
         "p.name",
@@ -382,6 +388,7 @@ const getProductsByPrice = async (min, max) => {
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
       .whereBetween("ps.price", [min, max])
+      .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
         "p.name",
@@ -434,6 +441,7 @@ const getNewProducts = async () => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
+      .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
         "p.name",
@@ -488,6 +496,8 @@ const getProductsByCollection = async (collection) => {
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
       .where("p.collection", collection)
+      .where("p.status", 1) // Assuming status 1 means active
+
       .groupBy(
         "p.id",
         "p.name",
@@ -541,6 +551,8 @@ const searchProducts = async (keyword) => {
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
       .where("p.name", "like", `%${keyword}%`)
+      .where("p.status", 1) // Assuming status 1 means active
+
       .groupBy(
         "p.id",
         "p.name",
