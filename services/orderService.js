@@ -889,7 +889,6 @@ const getOrderDashboard = async (startDateTime = null, endDateTime = null) => {
 
 const getOrderDetails = async (orderId) => {
   try {
-    // Fetch the order with all necessary details
 
     const order = await knex("Order")
       .select("Order.*", "User.first_name", "User.last_name", "User.email","Address.phone_number as phone")
