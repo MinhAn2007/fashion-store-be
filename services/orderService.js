@@ -892,8 +892,9 @@ const getOrderDetails = async (orderId) => {
     // Fetch the order with all necessary details
 
     const order = await knex("Order")
-      .select("Order.*", "User.first_name", "User.last_name", "User.email")
+      .select("Order.*", "User.first_name", "User.last_name", "User.email","Address.phone_number as phone")
       .join("User", "Order.customer_id", "=", "User.id")
+      .join("Address", "User.id", "=", "Address.user_id")
       .where("Order.id", orderId)
       .first();
 
@@ -961,6 +962,7 @@ const getOrderDetails = async (orderId) => {
       shippingFee: parseInt(order.shipping_fee),
       discount: order.payment_id === 0 ? 50000 : 0,
       total: order.total,
+      phone: order.phone,
     };
   } catch (error) {
     console.error("Error fetching order details:", error);
