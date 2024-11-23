@@ -253,9 +253,15 @@ const createOrder = async (
 
 const getOrdersWithDetails = async (userId) => {
   try {
-    const orders = await knex("Order")
+    const orders = await knex("Order as o")
       .where({ customer_id: userId })
-      .select("*")
+      .leftJoin("Coupon as c", "o.coupon_id", "c.id")
+      .select(
+        "o.*",
+        "c.coupon_code as couponCode",
+        "c.coupon_value as couponValue",
+        "c.coupon_type as couponType",
+      )
       .orderBy("created_at", "desc");
 
     const orderDetails = await Promise.all(
@@ -280,7 +286,7 @@ const getOrdersWithDetails = async (userId) => {
             "Products_skus.size",
             "Products_skus.color",
             "Products_skus.image",
-            "Product.name as product_name"
+            "Product.name as product_name",
           );
 
         // Thêm thuộc tính availability cho từng sản phẩm
@@ -891,12 +897,18 @@ const getOrderDetails = async (orderId) => {
   try {
 
     const order = await knex("Order")
-      .select("Order.*", "User.first_name", "User.last_name", "User.email","Address.phone_number as phone")
+      .select("Order.*", "User.first_name", "User.last_name", "User.email","Address.phone_number as phone",
+        "Coupon.coupon_code as couponCode",
+        "Coupon.coupon_value as couponValue",
+        "Coupon.coupon_type as couponType",
+      )
       .join("User", "Order.customer_id", "=", "User.id")
       .join("Address", "User.id", "=", "Address.user_id")
+      .leftJoin("Coupon", "Order.coupon_id", "Coupon.id")
       .where("Order.id", orderId)
       .first();
-
+      console.log(order);
+      
     if (!order) {
       throw new Error("Đơn hàng không tồn tại");
     }
@@ -939,6 +951,9 @@ const getOrderDetails = async (orderId) => {
       phone: order.phone_number,
       address: order.address,
       createdAt: order.created_at,
+      couponCode: order.couponCode,
+      couponValue: order.couponValue,
+      couponType: order.couponType,
       updatedAt: order[updateAt],
       paymentMethod: payment ? payment.payment_method : "Unknown",
       shipping: {

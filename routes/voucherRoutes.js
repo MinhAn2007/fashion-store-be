@@ -10,5 +10,7 @@ router.delete("/voucher/:id", voucherController.deleteVoucher);
 
 router.get("/voucher/dashboard", voucherController.getPromotionDashboardData);
 
+router.post("/voucher/check", voucherController.checkVoucher);
+
 module.exports = router;
 

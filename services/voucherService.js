@@ -176,9 +176,90 @@ const getPromotionDashboardData = async () => {
   }
 };
 
+const checkVoucher = async (code, totalAmount) => {
+  try {
+    const voucher = await knex("Coupon")
+      .where({ coupon_code: code })
+      .whereNull("deleted_at")
+      .first();
+
+    if (!voucher) {
+      return {
+        valid: false,
+        message: "Mã giảm giá không tồn tại",
+      };
+    }
+
+    const now = new Date();
+    const startDate = new Date(voucher.coupon_start_date);
+    const endDate = new Date(voucher.coupon_end_date);
+
+    // Kiểm tra thời gian hiệu lực
+    if (now < startDate || now > endDate) {
+      return {
+        valid: false,
+        message: "Mã giảm giá đã hết hạn hoặc chưa có hiệu lực",
+      };
+    }
+
+    // Kiểm tra trạng thái
+    if (voucher.coupon_status !== "active") {
+      return {
+        valid: false,
+        message: "Mã giảm giá không còn hiệu lực",
+      };
+    }
+
+    // Kiểm tra điều kiện đơn hàng tối thiểu
+    if (totalAmount < voucher.coupon_min_spend) {
+      return {
+        valid: false,
+        message: `Giá trị đơn hàng tối thiểu phải từ ${voucher.coupon_min_spend.toLocaleString()}đ`,
+      };
+    }
+
+    // Kiểm tra số lần sử dụng còn lại
+    const usageCount = await knex("Order")
+      .where({ coupon_id: voucher.id })
+      .count("* as count")
+      .first();
+
+    if (usageCount.count >= voucher.coupon_uses_per_coupon) {
+      return {
+        valid: false,
+        message: "Mã giảm giá đã hết lượt sử dụng",
+      };
+    }
+
+    // Tính toán giá trị giảm giá
+    let discountAmount = 0;
+    if (voucher.coupon_type === "percent") {
+      discountAmount = (totalAmount * voucher.coupon_value) / 100;
+      if (voucher.coupon_max_spend > 0) {
+        discountAmount = Math.min(discountAmount, voucher.coupon_max_spend);
+      }
+    } else {
+      discountAmount = voucher.coupon_value;
+    }
+
+    return {
+      valid: true,
+      voucher: {
+        ...voucher,
+        discountAmount,
+      },
+      message: "Áp dụng mã giảm giá thành công",
+    };
+  } catch (error) {
+    console.error("Error checking voucher:", error);
+    throw new Error("Lỗi khi kiểm tra mã giảm giá");
+  }
+};
+
 module.exports = {
   createPromotion,
   updatePromotion,
   deletePromotion,
   getPromotionDashboardData,
+  checkVoucher,
 };

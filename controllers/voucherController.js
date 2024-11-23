@@ -39,9 +39,20 @@ const getPromotionDashboardData = async (req, res) => {
   }
 };
 
+const checkVoucher = async (req, res) => {
+  try {
+    const { code } = req.body;
+    const voucher = await voucherService.checkVoucher(code);
+    res.status(200).json(voucher);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createVoucher,
   updateVoucher,
   deleteVoucher,
   getPromotionDashboardData,
+  checkVoucher,
 };
