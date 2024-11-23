@@ -69,7 +69,9 @@ const getDashboardOverview = async (
         knex.raw("SUM(total) as total_revenue"),
         knex.raw("AVG(total) as average_order_value")
     )
-    .groupBy("status");
+    .groupBy("status")
+    .where("Order.created_at", ">=", startDate)
+    .where("Order.created_at", "<=", endDate);
 
     const [
       totalRevenueResult,
