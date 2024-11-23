@@ -908,7 +908,8 @@ const getOrderDetails = async (orderId) => {
         "Products_skus.size",
         "Products_skus.color",
         "Products_skus.image",
-        "Product.name"
+        "Product.name",
+        "Products_skus.sku",
       )
       .join("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
       .join("Product", "Products_skus.product_id", "=", "Product.id")
