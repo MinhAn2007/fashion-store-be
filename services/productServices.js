@@ -60,7 +60,7 @@ const getProductById = async (productId) => {
       .where("p.id", productId)
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
-      .where("c.status", 1) 
+      .where("c.status", 1)
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
@@ -152,8 +152,7 @@ const getProductsByCategory = async (categoryId) => {
       .innerJoin("Product as p", "c.id", "=", "p.category_id") // Change LEFT JOIN to INNER JOIN
       .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id") // Keep this as LEFT JOIN
       .leftJoin("Review as r", "p.id", "=", "r.product_id")
-      .where("p.status", 1) // Assuming status 1 means active
-
+      .where("p.status", 1); // Assuming status 1 means active
 
     // Apply category filter
     if (categoryId) {
@@ -275,7 +274,7 @@ const getAllProducts = async (limit = 10, offset = 0) => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
-      .where("c.status", 1) 
+      .where("c.status", 1)
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
@@ -332,7 +331,7 @@ const getBestsellerProducts = async (limit = 10, offset = 0) => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
-      .where("c.status", 1) 
+      .where("c.status", 1)
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
@@ -390,7 +389,7 @@ const getProductsByPrice = async (min, max) => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
-      .where("c.status", 1) 
+      .where("c.status", 1)
       .whereBetween("ps.price", [min, max])
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
@@ -445,7 +444,7 @@ const getNewProducts = async () => {
       )
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
-      .where("c.status", 1) 
+      .where("c.status", 1)
       .where("p.status", 1) // Assuming status 1 means active
       .groupBy(
         "p.id",
@@ -502,7 +501,7 @@ const getProductsByCollection = async (collection) => {
       .whereNull("ps.deleted_at")
       .where("p.collection", collection)
       .where("p.status", 1) // Assuming status 1 means active
-      .where("c.status", 1) 
+      .where("c.status", 1)
       .groupBy(
         "p.id",
         "p.name",
@@ -557,7 +556,7 @@ const searchProducts = async (keyword) => {
       .whereNull("ps.deleted_at")
       .where("p.name", "like", `%${keyword}%`)
       .where("p.status", 1) // Assuming status 1 means active
-      .where("c.status", 1) 
+      .where("c.status", 1)
       .groupBy(
         "p.id",
         "p.name",
@@ -578,64 +577,64 @@ const searchProducts = async (keyword) => {
 const getSKUdetails = async (productId) => {
   try {
     // Get the SKU and its related product information
-    const skuWithProduct = await knex('Products_skus as sku')
-
-    .leftJoin('Product as p', 'sku.product_id', 'p.id')
-    .leftJoin('OrderItem as oi', 'sku.id', 'oi.product_id')
-    .leftJoin('Order as o', 'oi.order_id', 'o.id')
-    .select(
-      'sku.*',
-      'p.name as product_name',
-      'p.description',
-      knex.raw('SUM(sku.quantity) as total_stock'),
-      knex.raw('SUM(oi.quantity) as total_sold')
-    )
-    .where('p.id', productId)
-    .groupBy('sku.id')
-    .first();
-
+    const skuWithProduct = await knex("Products_skus as sku")
+      .leftJoin("Product as p", "sku.product_id", "p.id")
+      .leftJoin("OrderItem as oi", "sku.id", "oi.product_id")
+      .leftJoin("Order as o", "oi.order_id", "o.id")
+      .select(
+        "sku.*",
+        "p.name as product_name",
+        "p.description",
+        knex.raw("SUM(sku.quantity) as total_stock"),
+        knex.raw("SUM(oi.quantity) as total_sold")
+      )
+      .where("p.id", productId)
+      .groupBy("sku.id")
+      .first();
 
     if (!skuWithProduct) {
-      throw new Error('SKU not found');
+      throw new Error("SKU not found");
     }
 
     // Get all SKUs for the same product to calculate statistics
-    const allProductSKUs = await knex('Products_skus')
+    const allProductSKUs = await knex("Products_skus")
       .select(
-        'id',
-        'sku',
-        'size',
-        'color',
-        'price',
-        'image',
-        'quantity as stock_quantity',
-        'deleted_at'
+        "id",
+        "sku",
+        "size",
+        "color",
+        "price",
+        "image",
+        "quantity as stock_quantity",
+        "deleted_at"
       )
-      .where('product_id', skuWithProduct.product_id);
+      .where("product_id", skuWithProduct.product_id);
 
     // Get order items to calculate sales data
-    const salesData = await knex('OrderItem as oi')
+    const salesData = await knex("OrderItem as oi")
       .select(
-        'sku.id',
-        'sku.size',
-        'sku.color',
-        'sku.price',
-        knex.raw('SUM(oi.quantity) as sold_quantity'),
-        knex.raw('SUM(oi.quantity * oi.price) as revenue')
+        "sku.id",
+        "sku.size",
+        "sku.color",
+        "sku.price",
+        knex.raw("SUM(oi.quantity) as sold_quantity"),
+        knex.raw("SUM(oi.quantity * oi.price) as revenue")
       )
-      .leftJoin('Products_skus as sku', 'oi.product_id', 'sku.id')
-      .leftJoin('Order as o', 'oi.order_id', 'o.id')
-      .where('sku.product_id', skuWithProduct.product_id)
-      .groupBy('sku.id', 'sku.size', 'sku.color', 'sku.price');
+      .leftJoin("Products_skus as sku", "oi.product_id", "sku.id")
+      .leftJoin("Order as o", "oi.order_id", "o.id")
+      .where("sku.product_id", skuWithProduct.product_id)
+      .groupBy("sku.id", "sku.size", "sku.color", "sku.price");
 
     // Calculate statistics
     const stats = calculateStatistics(allProductSKUs, salesData);
 
     // Combine SKU list with sales data
-    const skuList = allProductSKUs.map(sku => {
-      const sales = salesData.find(s => s.size === sku.size && s.color === sku.color && s.id === sku.id) || {
+    const skuList = allProductSKUs.map((sku) => {
+      const sales = salesData.find(
+        (s) => s.size === sku.size && s.color === sku.color && s.id === sku.id
+      ) || {
         sold_quantity: 0,
-        revenue: 0
+        revenue: 0,
       };
       return {
         id: sku.id,
@@ -648,14 +647,17 @@ const getSKUdetails = async (productId) => {
         stock_quantity: parseInt(sku.stock_quantity),
         price: parseFloat(sku.price),
         sold_quantity: parseInt(sales.sold_quantity) || 0,
-        revenue: parseFloat(sales.revenue) || 0
+        revenue: parseFloat(sales.revenue) || 0,
       };
     });
 
     // Calculate total revenue
     const totalRevenue = skuList.reduce((sum, sku) => sum + sku.revenue, 0);
-    console.log('skuWithProduct', skuWithProduct);
-    const totalStock = skuList.reduce((sum, sku) => sum + sku.stock_quantity, 0);
+    console.log("skuWithProduct", skuWithProduct);
+    const totalStock = skuList.reduce(
+      (sum, sku) => sum + sku.stock_quantity,
+      0
+    );
     const totalSold = skuList.reduce((sum, sku) => sum + sku.sold_quantity, 0);
 
     return {
@@ -665,13 +667,13 @@ const getSKUdetails = async (productId) => {
         description: skuWithProduct.description,
         total_stock: totalStock,
         total_sold: totalSold,
-        total_revenue: totalRevenue
+        total_revenue: totalRevenue,
       },
       skuList,
-      stats
+      stats,
     };
   } catch (error) {
-    console.error('Error in getSKUdetails:', error);
+    console.error("Error in getSKUdetails:", error);
     throw error;
   }
 };
@@ -680,42 +682,42 @@ const calculateStatistics = (skus, salesData) => {
   // Helper function to create distribution data
   const createDistribution = (items, key) => {
     const distribution = {};
-    items.forEach(item => {
+    items.forEach((item) => {
       const value = item[key];
       distribution[value] = (distribution[value] || 0) + 1;
     });
-    
+
     return Object.entries(distribution).map(([name, value]) => ({
       name,
-      value
+      value,
     }));
   };
 
   // Helper function to create sales distribution
   const createSalesDistribution = (data, key) => {
     const distribution = {};
-    data.forEach(item => {
+    data.forEach((item) => {
       const value = item[key];
-      distribution[value] = (distribution[value] || 0) + parseInt(item.sold_quantity);
+      distribution[value] =
+        (distribution[value] || 0) + parseInt(item.sold_quantity);
     });
-    
+
     return Object.entries(distribution).map(([name, value]) => ({
       name,
-      value
+      value,
     }));
   };
 
   // Create price ranges for distribution
 
-
   return {
-    sizeDistribution: createDistribution(skus, 'size'),
-    colorDistribution: createDistribution(skus, 'color'),
-    salesBySize: createSalesDistribution(salesData, 'size'),
-    salesByColor: createSalesDistribution(salesData, 'color'),
+    sizeDistribution: createDistribution(skus, "size"),
+    colorDistribution: createDistribution(skus, "color"),
+    salesBySize: createSalesDistribution(salesData, "size"),
+    salesByColor: createSalesDistribution(salesData, "color"),
   };
 };
-const getProductStats = async (startDateTime,endDateTime) => {
+const getProductStats = async (startDateTime, endDateTime) => {
   try {
     const startDate = new Date(startDateTime);
     const endDate = endDateTime ? new Date(endDateTime) : new Date();
@@ -746,6 +748,7 @@ const getProductStats = async (startDateTime,endDateTime) => {
       .orderBy("revenue", "desc")
       .orderBy("sales", "desc")
       .limit(5);
+    console.log("topProductsQuery", topProductsQuery.toString());
 
     // Query để lấy doanh số theo thời gian
     const salesByTimeQuery = knex("OrderItem as oi")
@@ -812,35 +815,42 @@ const getInventoryStats = async () => {
   }
 };
 
-const getProductRevenueStats =  async (startDateTime,endDateTime) => {
+const getProductRevenueStats = async (startDateTime, endDateTime) => {
   try {
     const startDate = new Date(startDateTime);
     const endDate = endDateTime ? new Date(endDateTime) : new Date();
 
     const productRevenueQuery = knex("Product as p")
-    .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
-    .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
-    .leftJoin("Category as c", "p.category_id", "c.id")
-    .leftJoin("Order as o", "oi.order_id", "o.id")
-    .select(
-      "p.id as id",
-      "p.name as name",
-      "c.name as category",
-      "c.id as category_id",
-      "p.collection as collection",
-      "p.description as description",
-      "p.status as status",
-      knex.raw(`(
+      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+      .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
+      .leftJoin("Category as c", "p.category_id", "c.id")
+      .leftJoin("Order as o", "oi.order_id", "o.id")
+      .select(
+        "p.id as id",
+        "p.name as name",
+        "c.name as category",
+        "c.id as category_id",
+        "p.collection as collection",
+        "p.description as description",
+        "p.status as status",
+        knex.raw(`(
         SELECT COALESCE(SUM(quantity), 0)
         FROM Products_skus
         WHERE product_id = p.id
       ) as stock_quantity`),
-      knex.raw("COALESCE(SUM(oi.quantity), 0) as sold_quantity"),
-      knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue")
-    )
-    .groupBy("p.id", "c.id", "p.name", "p.collection", "p.description", "p.status")
-    .orderBy("id", "asc");
-    const  salesByTimeQuery = await knex("Product as p")
+        knex.raw("COALESCE(SUM(oi.quantity), 0) as sold_quantity"),
+        knex.raw("COALESCE(SUM(oi.quantity * oi.price), 0) as revenue")
+      )
+      .groupBy(
+        "p.id",
+        "c.id",
+        "p.name",
+        "p.collection",
+        "p.description",
+        "p.status"
+      )
+      .orderBy("id", "asc");
+    const salesByTimeQuery = await knex("Product as p")
       .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
       .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
       .leftJoin("Order as o", "oi.order_id", "o.id")
@@ -855,16 +865,29 @@ const getProductRevenueStats =  async (startDateTime,endDateTime) => {
       .groupBy("p.id", "p.name")
       .orderBy("total_sold_quantity", "desc");
 
-
     const productRevenueStats = await productRevenueQuery;
     productRevenueStats.forEach((product) => {
       product.revenue = parseFloat(product.revenue);
       product.stock_quantity = parseInt(product.stock_quantity);
       product.sold_quantity = parseInt(product.sold_quantity);
     });
+
+    const getInventory = await knex("Product as p")
+      .join("Products_skus as ps", "p.id", "ps.product_id")
+      .select(
+        "p.id ",
+        "p.name",
+        knex.raw("SUM(ps.quantity) as total_stock"),
+        "p.created_at"
+      )
+      .where("p.created_at", ">=", startDate)
+      .where("p.created_at", "<=", endDate)
+      .groupBy("p.id")
+
     return {
       salesByTimeQuery,
-      productRevenueStats
+      productRevenueStats,
+      getInventory,
     };
   } catch (error) {
     console.error("Error fetching product revenue statistics:", error.message);
@@ -1011,7 +1034,7 @@ const editSKU = async (skuId, skuData) => {
     console.error("Error updating SKU:", error.message);
     throw error;
   }
-}
+};
 
 const deleteSKU = async (skuId) => {
   try {
