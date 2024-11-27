@@ -123,10 +123,8 @@ const getProductById = async (productId) => {
 };
 
 const getProductsByCategory = async (categoryId) => {
-  console.log("categoryId", categoryId);
 
   try {
-    // Start building the query
     const query = knex("Category as c")
       .select(
         "c.id as category_id",
@@ -140,7 +138,7 @@ const getProductsByCategory = async (categoryId) => {
         "p.created_at",
         "p.updated_at",
         "p.deleted_at",
-        knex.raw("AVG(r.rating) as rating"), // Average rating
+        knex.raw("AVG(r.rating) as rating"), 
         "ps.id as sku_id",
         "ps.size",
         "ps.color",
@@ -149,19 +147,18 @@ const getProductsByCategory = async (categoryId) => {
         "ps.quantity",
         "ps.image"
       )
-      .innerJoin("Product as p", "c.id", "=", "p.category_id") // Change LEFT JOIN to INNER JOIN
-      .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id") // Keep this as LEFT JOIN
+      .innerJoin("Product as p", "c.id", "=", "p.category_id") 
+      .leftJoin("Products_skus as ps", "p.id", "=", "ps.product_id") 
       .leftJoin("Review as r", "p.id", "=", "r.product_id")
-      .where("p.status", 1); // Assuming status 1 means active
+      .where("p.status", 1); 
 
-    // Apply category filter
     if (categoryId) {
       query.where("c.id", categoryId).orWhere("c.parent_id", categoryId);
     }
 
+    const nameCategory = await knex("Category as c").select("c.name").where("c.id", categoryId).first();
     console.log("Generated SQL query without GROUP BY:", query.toString());
 
-    // Group by clause
     query.groupBy(
       "c.id",
       "c.name",
@@ -231,6 +228,24 @@ const getProductsByCategory = async (categoryId) => {
 
       return acc;
     }, []);
+
+    if (formattedProducts.length === 0) {
+      formattedProducts.push({
+        id: null,
+        category_id: categoryId,
+        name: null,
+        description: null,
+        sold: null,
+        status: null,
+        featured: null,
+        created_at: null,
+        updated_at: null,
+        deleted_at: null,
+        rating: null,
+        category_name: nameCategory.name,
+        skus: [],
+      });
+    }
 
     return formattedProducts;
   } catch (error) {

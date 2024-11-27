@@ -74,12 +74,6 @@ const getProductsByCategory = async (req, res) => {
     );
     console.log(products);
 
-    if (products.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No products found in this category" });
-    }
-
     res.status(200).json({
       categoryId: categoryId,
       // page: pageNumber,
