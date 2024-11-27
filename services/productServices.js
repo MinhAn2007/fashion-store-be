@@ -245,7 +245,7 @@ const getAllProducts = async (limit = 10, offset = 0) => {
       .leftJoin("Category as c", "p.category_id", "c.id")
       .leftJoin("Category as parent", "c.parent_id", "parent.id")
       .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
-      .leftJoin("Review as r", "p.id", "=", "r.product_id") // Thêm join với bảng Review
+      .leftJoin("Review as r", "p.id", "=", "r.product_id") 
       .select(
         "p.id",
         "p.name",
@@ -275,7 +275,7 @@ const getAllProducts = async (limit = 10, offset = 0) => {
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
       .where("c.status", 1)
-      .where("p.status", 1) // Assuming status 1 means active
+      .where("p.status", 1) 
       .groupBy(
         "p.id",
         "p.name",
@@ -286,8 +286,6 @@ const getAllProducts = async (limit = 10, offset = 0) => {
         "parent.name"
       )
       .orderBy("p.created_at", "desc")
-      .limit(limit)
-      .offset(offset);
 
     const products = await query;
 
