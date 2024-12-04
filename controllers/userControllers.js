@@ -188,6 +188,19 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const message = await userServices.resetPassword(token, newPassword);
+    res.status(200).json({ message });
+  } catch (error) {
+    console.error("Error in resetPassword:", error.message);
+    res.status(500).json({ error: "Có lỗi xảy ra, vui lòng thử lại sau." });
+  }
+};
+
+
 module.exports = {
   login,
   getUserInfo,
@@ -198,5 +211,6 @@ module.exports = {
   getUserStats,
   adminLogin,
   forgotPassword,
+  resetPassword
 
 };
