@@ -355,6 +355,32 @@ const forgotPassword = async (email) => {
     throw new Error("Có lỗi xảy ra, vui lòng thử lại sau.");
   }
 };
+//resetPassword
+const resetPassword = async (token, newPassword) => {
+  try {
+    // Giải mã token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Lấy userId từ token
+    const userId = decoded.userId;
+
+    // Mã hóa mật khẩu mới
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Cập nhật mật khẩu
+    await knex("User").where({ id: userId }).update({ password: hashedPassword });
+
+    return "Mật khẩu đã được đặt lại thành công.";
+  } catch (error) {
+    console.error("Error in resetPassword:", error.message);
+
+    if (error.name === "TokenExpiredError") {
+      throw new Error("Token đã hết hạn.");
+    }
+    throw new Error("Token không hợp lệ.");
+  }
+};
+
 
 module.exports = {
   login,
@@ -365,5 +391,6 @@ module.exports = {
   getAllUsers,
   getUserStats,
   adminLogin,
-  forgotPassword
+  forgotPassword,
+  resetPassword
 };
