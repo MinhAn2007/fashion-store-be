@@ -327,5 +327,5 @@ module.exports = {
   deleteAddress,
   getAllUsers,
   getUserStats,
-  adminLogin
+  adminLogin,
 };

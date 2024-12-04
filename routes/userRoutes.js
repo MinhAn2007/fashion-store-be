@@ -30,5 +30,4 @@ router.get('/users', verifyAdmin, userController.getAllUsers);
 //router.get('/users/stats', userController.getUserStats);
 router.get('/users/stats', verifyAdmin, userController.getUserStats);
 
-
 module.exports = router;
