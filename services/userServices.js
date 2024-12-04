@@ -318,6 +318,43 @@ const adminLogin = async (email, password) => {
   return { token };
 };
 
+//forgotPassword
+const forgotPassword = async (email) => {
+  try {
+    // Kiểm tra xem email có tồn tại không
+    const user = await knex("User").where({ email }).first();
+    if (!user) {
+      console.log("Email không tồn tại trong cơ sở dữ liệu.");
+      return "Nếu email tồn tại, bạn sẽ nhận được liên kết đặt lại mật khẩu.";
+    }
+
+    // Tạo JWT token
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    // Gửi email
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    await mailSender(
+      email,
+      "Đặt lại mật khẩu của bạn",
+      `<p>Nhấn vào liên kết sau để đặt lại mật khẩu:</p><a href="${resetLink}">${resetLink}</a>`
+    );
+
+    return "Nếu email tồn tại, bạn sẽ nhận được liên kết đặt lại mật khẩu.";
+  } catch (error) {
+    console.error("Error in forgotPassword:", error);
+    if (error.name === "JsonWebTokenError") {
+      throw new Error("Lỗi khi tạo token.");
+    }
+    if (error.name === "EmailError") {
+      throw new Error("Lỗi khi gửi email. Vui lòng thử lại sau.");
+    }
+    throw new Error("Có lỗi xảy ra, vui lòng thử lại sau.");
+  }
+};
 
 module.exports = {
   login,
@@ -328,4 +365,5 @@ module.exports = {
   getAllUsers,
   getUserStats,
   adminLogin,
+  forgotPassword
 };
