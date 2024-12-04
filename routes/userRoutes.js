@@ -30,4 +30,7 @@ router.get('/users', verifyAdmin, userController.getAllUsers);
 //router.get('/users/stats', userController.getUserStats);
 router.get('/users/stats', verifyAdmin, userController.getUserStats);
 
+// Quên mật khẩu và đặt lại mật khẩu
+router.post('/forgot-password', userController.forgotPassword);
+router.post('/reset-password', userController.resetPassword);
 module.exports = router;
