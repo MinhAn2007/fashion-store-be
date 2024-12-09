@@ -1,6 +1,7 @@
 const knex = require("../config/database").db;
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const mailSender = require("../utils/mailSender");
 
 const login = async (email, password) => {
   try {
