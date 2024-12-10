@@ -345,7 +345,8 @@ const getBestsellerProducts = async (limit = 10, offset = 0) => {
       .whereNull("p.deleted_at")
       .whereNull("ps.deleted_at")
       .where("c.status", 1)
-      .where("p.status", 1) // Assuming status 1 means active
+      .where("ps.quantity", ">", 0)
+      .where("p.status", 1) 
       .groupBy(
         "p.id",
         "p.name",
