@@ -602,16 +602,12 @@ const returnOrder = async (orderId, returnReason) => {
 
 const getDashboardDetails = async () => {
   return await knex.transaction(async (trx) => {
-    const monthlyRevenue = await trx
-      .select(
-        knex.raw("DATE_FORMAT(o.created_at, '%Y-%m') AS month"),
-        knex.raw("SUM(oi.quantity * oi.price) AS total_revenue")
-      )
-      .from("Order as o")
-      .join("OrderItem as oi", "o.id", "=", "oi.order_id")
-      .where("o.status", "Completed")
-      .groupBy(knex.raw("DATE_FORMAT(o.created_at, '%Y-%m')"))
-      .orderBy("month");
+    let monthlyRevenue = await knex("Order").select(
+      knex.raw("DATE_FORMAT(created_at, '%Y-%m') AS month"),
+      knex.raw("SUM(total) AS total_revenue")
+    ).where("status", "Completed")
+    .groupBy("month")
+    .orderBy("month");
 
     // knex("OrderItem ")
     // .join("Order", "OrderItem.order_id", "Order.id")
@@ -630,32 +626,31 @@ const getDashboardDetails = async () => {
         "c.name as category_name",
         "c.id as id",
         "c.parent_id as parent_id",
-        knex.raw("SUM(p.sold) AS total_sold")
+        knex.raw("SUM(oi.quantity) as total_sold")
       )
       .from("Category as c")
       .leftJoin("Product as p", "c.id", "=", "p.category_id")
       .leftJoin("OrderItem as oi", "p.id", "=", "oi.product_id")
       .leftJoin("Order as o", "oi.order_id", "=", "o.id")
 
-      .where("o.status", "Completed")
       .groupBy("c.id")
       .orderByRaw("total_sold DESC");
 
     console.log(monthlyQuantity);
 
     const bestSellingProducts = await trx
-      .select(
-        "p.name AS product_name",
-        knex.raw("SUM(oi.quantity) AS total_quantity_sold")
-      )
-      .from("OrderItem as oi")
-      .join("Product as p", "oi.product_id", "=", "p.id")
-      .join("Order as o", "oi.order_id", "=", "o.id")
-      .where("o.status", "Completed")
-      .groupBy("p.id")
-      .orderBy("total_quantity_sold", "desc")
-      .limit(4);
+    ("Product as p")
+    .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+    .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
+    .leftJoin("Order as o", "oi.order_id", "o.id")
+    .select(
+      "p.id as product_id",
+      "p.name as product_name",
+      knex.raw("SUM(oi.quantity) as total_quantity_sold"),
 
+    )
+    .groupBy("p.id", "p.name")
+    .orderBy("total_quantity_sold", "desc").limit(4);
     return {
       monthlyRevenue,
       monthlyQuantity,
@@ -895,20 +890,24 @@ const getOrderDashboard = async (startDateTime = null, endDateTime = null) => {
 
 const getOrderDetails = async (orderId) => {
   try {
-
     const order = await knex("Order")
-      .select("Order.*", "User.first_name", "User.last_name", "User.email","Address.phone_number as phone",
+      .select(
+        "Order.*",
+        "User.first_name",
+        "User.last_name",
+        "User.email",
+        "Address.phone_number as phone",
         "Coupon.coupon_code as couponCode",
         "Coupon.coupon_value as couponValue",
-        "Coupon.coupon_type as couponType",
+        "Coupon.coupon_type as couponType"
       )
       .join("User", "Order.customer_id", "=", "User.id")
       .join("Address", "User.id", "=", "Address.user_id")
       .leftJoin("Coupon", "Order.coupon_id", "Coupon.id")
       .where("Order.id", orderId)
       .first();
-      console.log(order);
-      
+    console.log(order);
+
     if (!order) {
       throw new Error("Đơn hàng không tồn tại");
     }
@@ -921,7 +920,7 @@ const getOrderDetails = async (orderId) => {
         "Products_skus.color",
         "Products_skus.image",
         "Product.name",
-        "Products_skus.sku",
+        "Products_skus.sku"
       )
       .join("Products_skus", "OrderItem.product_id", "=", "Products_skus.id")
       .join("Product", "Products_skus.product_id", "=", "Product.id")
