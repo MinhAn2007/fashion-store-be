@@ -426,6 +426,7 @@ const updateOrderStatus = async (orderId, status) => {
       .update({
         status,
         [statusTime]: new Date(),
+          
       });
 
     // Format the date

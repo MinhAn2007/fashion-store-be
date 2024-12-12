@@ -8,22 +8,28 @@ const getDashboardOverview = async (
     const startDate = startDateTime
       ? new Date(startDateTime).toISOString()
       : null;
-    const endDate = endDateTime ? new Date(endDateTime).toISOString() : null;
+    const endDate = endDateTime
+      ? new Date(new Date(endDateTime).setHours(3, 59, 59)).toISOString()
+      : null;
+    console.log("startDate", endDate);
+    let totalRevenueQuery = knex("Order")
+      .select(knex.raw("SUM(total) AS total_revenue"))
+      .where("status", "Completed");
 
-    let totalRevenueQuery = knex("Order").select(
-      knex.raw("SUM(total) AS total_revenue")
-    ).where("status", "Completed");
+    let totalOrdersQuery = knex("Order")
+      .count("id as total_orders")
+      .where("status", "Completed");
 
-    let totalOrdersQuery = knex("Order").count("id as total_orders").where("status", "Completed");
+    let averageOrderValueQuery = knex("Order")
+      .avg("total as average_order_value")
+      .where("status", "Completed");
 
-    let averageOrderValueQuery = knex("Order").avg(
-      "total as average_order_value"
-    ).where("status", "Completed");
-
-    let monthlyRevenueQuery = knex("Order").select(
-      knex.raw("DATE_FORMAT(created_at, '%Y-%m') AS month"),
-      knex.raw("SUM(total) AS revenue")
-    ).where("status", "Completed");
+    let monthlyRevenueQuery = knex("Order")
+      .select(
+        knex.raw("DATE_FORMAT(created_at, '%Y-%m') AS month"),
+        knex.raw("SUM(total) AS revenue")
+      )
+      .where("status", "Completed");
 
     let salesByCategoryQuery = knex("OrderItem ")
       .join("Order", "OrderItem.order_id", "Order.id")
@@ -63,15 +69,15 @@ const getDashboardOverview = async (
     }
 
     const ordersByStatus = await knex("Order")
-    .select(
-        "status", 
+      .select(
+        "status",
         knex.raw("COUNT(*) as total_orders"),
         knex.raw("SUM(total) as total_revenue"),
         knex.raw("AVG(total) as average_order_value")
-    )
-    .groupBy("status")
-    .where("Order.created_at", ">=", startDate)
-    .where("Order.created_at", "<=", endDate);
+      )
+      .groupBy("status")
+      .where("Order.created_at", ">=", startDate)
+      .where("Order.created_at", "<=", endDate);
 
     const [
       totalRevenueResult,
@@ -79,7 +85,7 @@ const getDashboardOverview = async (
       averageOrderValueResult,
       monthlyRevenue,
       salesByCategory,
-      ordersByStatusResult
+      ordersByStatusResult,
     ] = await Promise.all([
       totalRevenueQuery.first(),
       totalOrdersQuery.first(),
@@ -90,7 +96,7 @@ const getDashboardOverview = async (
       salesByCategoryQuery
         .groupBy("Category.id", "Category.name")
         .orderBy("category_sales", "desc"),
-        ordersByStatus
+      ordersByStatus,
     ]);
 
     // Calculate growth rates
@@ -109,7 +115,7 @@ const getDashboardOverview = async (
       monthlyRevenue,
       salesByCategory,
       growthRates,
-      ordersByStatusResult
+      ordersByStatusResult,
     };
   } catch (error) {
     console.error("Error fetching dashboard overview:", error);
