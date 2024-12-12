@@ -9,7 +9,7 @@ const getDashboardOverview = async (
       ? new Date(startDateTime).toISOString()
       : null;
     const endDate = endDateTime
-      ? new Date(new Date(endDateTime).setHours(3, 59, 59)).toISOString()
+      ? new Date(new Date(endDateTime).setHours(30, 59, 59)).toISOString()
       : null;
     console.log("startDate", endDate);
     let totalRevenueQuery = knex("Order")
