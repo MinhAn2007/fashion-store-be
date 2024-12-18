@@ -2,7 +2,10 @@ const knex = require("../config/database").db;
 const cartService = require("./cartServices");
 const { getUserById } = require("./userServices");
 const mailSender = require("../utils/mailSender");
-const { mappingStatusTime } = require("../constants/status");
+const {
+  mappingStatusTime,
+  mappingStatusReason,
+} = require("../constants/status");
 const createOrder = async (
   userId,
   cartItems,
@@ -260,7 +263,7 @@ const getOrdersWithDetails = async (userId) => {
         "o.*",
         "c.coupon_code as couponCode",
         "c.coupon_value as couponValue",
-        "c.coupon_type as couponType",
+        "c.coupon_type as couponType"
       )
       .orderBy("created_at", "desc");
 
@@ -286,7 +289,7 @@ const getOrdersWithDetails = async (userId) => {
             "Products_skus.size",
             "Products_skus.color",
             "Products_skus.image",
-            "Product.name as product_name",
+            "Product.name as product_name"
           );
 
         // Thêm thuộc tính availability cho từng sản phẩm
@@ -426,7 +429,6 @@ const updateOrderStatus = async (orderId, status) => {
       .update({
         status,
         [statusTime]: new Date(),
-          
       });
 
     // Format the date
@@ -578,7 +580,7 @@ const returnOrder = async (orderId, returnReason) => {
     // Cập nhật trạng thái đơn hàng thành 'Returned' và thêm lý do, thời gian trả
 
     await knex("Order").where({ id: orderId }).update({
-      status: "Returned",
+      status: "Pending Confirmation",
       returned_at: new Date(),
       return_reason: returnReason, // Ghi lý do trả
     });
@@ -603,12 +605,14 @@ const returnOrder = async (orderId, returnReason) => {
 
 const getDashboardDetails = async () => {
   return await knex.transaction(async (trx) => {
-    let monthlyRevenue = await knex("Order").select(
-      knex.raw("DATE_FORMAT(created_at, '%Y-%m') AS month"),
-      knex.raw("SUM(total) AS total_revenue")
-    ).where("status", "Completed")
-    .groupBy("month")
-    .orderBy("month");
+    let monthlyRevenue = await knex("Order")
+      .select(
+        knex.raw("DATE_FORMAT(created_at, '%Y-%m') AS month"),
+        knex.raw("SUM(total) AS total_revenue")
+      )
+      .where("status", "Completed")
+      .groupBy("month")
+      .orderBy("month");
 
     // knex("OrderItem ")
     // .join("Order", "OrderItem.order_id", "Order.id")
@@ -639,19 +643,18 @@ const getDashboardDetails = async () => {
 
     console.log(monthlyQuantity);
 
-    const bestSellingProducts = await trx
-    ("Product as p")
-    .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
-    .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
-    .leftJoin("Order as o", "oi.order_id", "o.id")
-    .select(
-      "p.id as product_id",
-      "p.name as product_name",
-      knex.raw("SUM(oi.quantity) as total_quantity_sold"),
-
-    )
-    .groupBy("p.id", "p.name")
-    .orderBy("total_quantity_sold", "desc").limit(4);
+    const bestSellingProducts = await trx("Product as p")
+      .leftJoin("Products_skus as ps", "p.id", "ps.product_id")
+      .leftJoin("OrderItem as oi", "ps.id", "oi.product_id")
+      .leftJoin("Order as o", "oi.order_id", "o.id")
+      .select(
+        "p.id as product_id",
+        "p.name as product_name",
+        knex.raw("SUM(oi.quantity) as total_quantity_sold")
+      )
+      .groupBy("p.id", "p.name")
+      .orderBy("total_quantity_sold", "desc")
+      .limit(4);
     return {
       monthlyRevenue,
       monthlyQuantity,
@@ -763,14 +766,7 @@ const getOrderDashboard = async (startDateTime = null, endDateTime = null) => {
     console.log(startDate);
     console.log(endDate);
     let ordersQuery = knex("Order")
-      .select(
-        "Order.id",
-        "User.first_name",
-        "User.last_name",
-        "Order.status",
-        "Order.total",
-        "Order.created_at"
-      )
+      .select("Order.*", "User.first_name", "User.last_name")
       .join("User", "Order.customer_id", "User.id");
 
     let monthlyRevenueQuery = knex
@@ -854,13 +850,26 @@ const getOrderDashboard = async (startDateTime = null, endDateTime = null) => {
       (order) => order.status === "Pending Confirmation"
     ).length;
 
-    const formattedOrders = orders.map((order) => ({
-      id: order.id,
-      customerName: `${order.first_name} ${order.last_name}`,
-      status: order.status,
-      total: order.total,
-      createdAt: order.created_at,
-    }));
+    const formattedOrders = orders
+      .map((order) => {
+        const updateAt = mappingStatusTime(order.status);
+        const reason = order.return_reason
+          ? mappingStatusReason(order.return_reason)
+          : order.cancel_reason
+          ? mappingStatusReason(order.cancel_reason)
+          : null;
+        console.log("123", reason);
+        return {
+          ...order,
+          id: order.id,
+          customerName: `${order.first_name} ${order.last_name}`,
+          updatedAt: order[reason] || order[updateAt],
+          status: order.status,
+          total: order.total,
+          createdAt: order.created_at,
+        };
+      })
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
     const total = paymentStats.reduce(
       (sum, item) => sum + parseInt(item.count),

@@ -15,4 +15,12 @@ const mappingStatusTime = (status) => {
   }
 };
 
-module.exports = { mappingStatusTime };
+const mappingStatusReason = (reason) => {
+  if (reason) {
+    return "returned_at";
+  } else {
+    return "canceled_at";
+  }
+};
+
+module.exports = { mappingStatusTime, mappingStatusReason };
