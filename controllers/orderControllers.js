@@ -95,8 +95,8 @@ const returnOrder = async (req, res) => {
     const orderId = req.params.id;
     const reason = req.body.reason;
     console.log(reason);
-    
-    const result = await OrderService.returnOrder(orderId,reason);
+
+    const result = await OrderService.returnOrder(orderId, reason);
     res.status(200).json({
       success: true,
     });
@@ -140,19 +140,19 @@ const getDashboardDetails = async (req, res) => {
       message: error.message,
     });
   }
-}
+};
 
 const getOrderDashboard = async (req, res) => {
   try {
     console.log(req.query);
-    
+
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
     console.log(startDate);
     console.log(endDate);
-    
+
     const orders = await OrderService.getOrderDashboard(startDate, endDate);
-        res.status(200).json({
+    res.status(200).json({
       success: true,
       data: orders,
     });
@@ -182,6 +182,24 @@ const getOrderDetails = async (req, res) => {
   }
 };
 
+const checkCustomerIsGetOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const isGet = req.body.isGet;
+    const result = await OrderService.checkCustomerIsGetOrder(orderId,isGet);
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Lỗi khi kiểm tra khách hàng đã nhận hàng:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrdersWithDetails,
@@ -192,4 +210,5 @@ module.exports = {
   getDashboardDetails,
   getOrderDashboard,
   getOrderDetails,
+  checkCustomerIsGetOrder,
 };

@@ -361,11 +361,13 @@ const cancelOrder = async (orderId, cancellationReason) => {
     }
 
     // Cập nhật trạng thái đơn hàng thành 'Cancelled' và thêm lý do, thời gian hủy
-    await knex("Order").where({ id: orderId }).update({
-      status: "Cancelled",
-      canceled_at: new Date(),
-      cancel_reason: cancellationReason, // Ghi lý do hủy
-    });
+    await knex("Order")
+      .where({ id: orderId })
+      .update({
+        status: "Cancelled",
+        canceled_at: new Date(),
+        cancel_reason: cancellationReason, // Ghi lý do hủy
+      });
 
     // Khôi phục lại lượng sản phẩm trong kho
     const orderItems = await knex("OrderItem").where({ order_id: orderId });
@@ -430,6 +432,12 @@ const updateOrderStatus = async (orderId, status) => {
         status,
         [statusTime]: new Date(),
       });
+
+    if(status === "Delivered") {
+      await trx("Order").where({ id: orderId }).update({
+        is_get: null,
+      });
+    }
 
     // Format the date
     const orderDate = new Date().toLocaleString("vi-VN", {
@@ -564,6 +572,55 @@ const updateOrderStatus = async (orderId, status) => {
     throw new Error(error.message);
   }
 };
+
+const checkCustomerIsGetOrder = async (orderId, isGet) => {
+  try {
+    const order = await knex("Order").where({ id: orderId }).first();
+    if (!order) {
+      throw new Error("Đơn hàng không tồn tại");
+    }
+    if (order.status !== "Delivered" && order.status !== "In Transit") {
+      throw new Error("Đơn hàng chưa xác nhận đã giao");
+    }
+    console.log("isGet", isGet);
+
+    if (isGet === null) {
+      console.log("123");
+      await knex("Order").where({ id: orderId }).update({
+        is_get: null,
+        updated_at: new Date(),
+        delivery_at: new Date(),
+      });
+      return {
+        success: true,
+        message: "Đã cập nhật trạng thái đơn hàng",
+      };
+    }
+
+    if (isGet) {
+      await knex("Order").where({ id: orderId }).update({
+        is_get: true,
+        updated_at: new Date(),
+        delivery_at: new Date(),
+      });
+    } else {
+      await knex("Order").where({ id: orderId }).update({
+        is_get: false,
+        updated_at: new Date(),
+        delivery_at: new Date(),
+      });
+    }
+
+    return {
+      success: true,
+      message: "Cập nhật trạng thái đơn hàng thành công",
+    };
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    throw new Error(error.message);
+  }
+};
+
 const returnOrder = async (orderId, returnReason) => {
   try {
     // Lấy thông tin đơn hàng trước khi hủy
@@ -582,7 +639,7 @@ const returnOrder = async (orderId, returnReason) => {
     await knex("Order").where({ id: orderId }).update({
       status: "Pending Confirmation",
       returned_at: new Date(),
-      return_reason: returnReason, // Ghi lý do trả
+      return_reason: returnReason || "Do Admin trả hàng",
     });
     const orderItems = await knex("OrderItem").where({ order_id: orderId });
     for (const item of orderItems) {
@@ -965,6 +1022,7 @@ const getOrderDetails = async (orderId) => {
       couponType: order.couponType,
       updatedAt: order[updateAt],
       paymentMethod: payment ? payment.payment_method : "Unknown",
+      isGet: order.is_get,
       shipping: {
         method: "Express",
         fee: shippingFee,
@@ -1004,4 +1062,5 @@ module.exports = {
   getDashboardDetails,
   getOrderDashboard,
   getOrderDetails,
+  checkCustomerIsGetOrder,
 };

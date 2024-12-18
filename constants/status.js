@@ -10,8 +10,10 @@ const mappingStatusTime = (status) => {
       return "returned_at";
     case "In Transit":
       return "shipping_at";
-    default:
+    case "Delivered":
       return "delivery_at";
+    default:
+      return "updated_at";
   }
 };
 
