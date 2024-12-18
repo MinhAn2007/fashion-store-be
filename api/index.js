@@ -41,6 +41,15 @@ server.listen(PORT, () => {
   // Khởi tạo server và lắng nghe trên PORT được xác định
   console.log("Server Started in", PORT);
 });
+
+server.on("error", (error) => {
+  console.error("Server error:", error);
+});
+
+app.on("listening", () => {
+  console.log("Server is listening on port", PORT);
+});
+
 console.log(expressListEndpoints(app)); // In ra danh sách các endpoint mà server đang lắng nghe
 
 module.exports = app;

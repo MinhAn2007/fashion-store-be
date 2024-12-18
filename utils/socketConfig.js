@@ -1,23 +1,24 @@
-const socketIo = require('socket.io');
+const socketIo = require("socket.io");
 
 const connectedUsers = new Map();
 
 const initSocket = (server) => {
   const io = socketIo(server, {
+    path: "/api/socket.io",
     cors: {
       origin: "*",
-      methods: ["GET", "POST"]
-    }
+      methods: ["GET", "POST"],
+    },
   });
 
-  io.on('connection', (socket) => {
+  io.on("connection", (socket) => {
     // Register user when they connect
-    socket.on('register', ({ userId }) => {
+    socket.on("register", ({ userId }) => {
       connectedUsers.set(userId, socket.id);
     });
 
     // Handle disconnection
-    socket.on('disconnect', () => {
+    socket.on("disconnect", () => {
       for (let [userId, socketId] of connectedUsers.entries()) {
         if (socketId === socket.id) {
           connectedUsers.delete(userId);
@@ -29,7 +30,7 @@ const initSocket = (server) => {
 
   return {
     io,
-    connectedUsers
+    connectedUsers,
   };
 };
 
