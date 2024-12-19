@@ -210,7 +210,6 @@ const checkCustomerIsGetOrder = async (req, res) => {
     const channel = ably.channels.get("orders");
     channel.publish("order-status-updated", {
       orderId,
-      status,
       message: "Order status has been updated",
     });
 
