@@ -61,6 +61,11 @@ const cancelOrder = async (req, res) => {
     const orderId = req.params.id;
     const cancellationReason = req.body.reason;
     const result = await OrderService.cancelOrder(orderId, cancellationReason);
+    const channel = ably.channels.get("orders");
+    channel.publish("order-status-updated", {
+      orderId,
+      message: "Order status has been updated",
+    });
     res.status(200).json({
       success: true,
       message: result.message,
@@ -111,6 +116,11 @@ const returnOrder = async (req, res) => {
     console.log(reason);
 
     const result = await OrderService.returnOrder(orderId, reason);
+    const channel = ably.channels.get("orders");
+    channel.publish("order-status-updated", {
+      orderId,
+      message: "Order status has been updated",
+    });
     res.status(200).json({
       success: true,
     });
