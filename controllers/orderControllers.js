@@ -1,4 +1,6 @@
 const OrderService = require("../services/orderService");
+const { getSocketIO } = require("../utils/socket");
+const ably = require("../utils/ablyConfig");
 
 const createOrder = async (req, res) => {
   const { userId, cartItems, selectedAddress, paymentId, couponId, total } =
@@ -77,6 +79,18 @@ const updateOrderStatus = async (req, res) => {
     const orderId = req.params.id;
     const status = req.body.status;
     const result = await OrderService.updateOrderStatus(orderId, status);
+    const io = getSocketIO();
+    const channel = ably.channels.get("orders");
+    channel.publish("order-status-updated", {
+      orderId,
+      status,
+      message: "Order status has been updated",
+    });
+    if (io) {
+      console.log("Emitting orderUpdated event");
+
+      io.emit("orderUpdated", "Cập nhật trạng thái đơn hàng thành công");
+    }
     res.status(200).json({
       success: true,
       message: result.message,
@@ -186,7 +200,20 @@ const checkCustomerIsGetOrder = async (req, res) => {
   try {
     const orderId = req.params.id;
     const isGet = req.body.isGet;
-    const result = await OrderService.checkCustomerIsGetOrder(orderId,isGet);
+    const result = await OrderService.checkCustomerIsGetOrder(orderId, isGet);
+    const io = getSocketIO();
+    if (io) {
+      console.log("Emitting orderUpdated event");
+
+      io.emit("orderUpdated", "Cập nhật trạng thái đơn hàng thành công");
+    }
+    const channel = ably.channels.get("orders");
+    channel.publish("order-status-updated", {
+      orderId,
+      status,
+      message: "Order status has been updated",
+    });
+
     res.status(200).json({
       success: true,
       data: result,
