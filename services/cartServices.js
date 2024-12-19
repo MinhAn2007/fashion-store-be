@@ -93,8 +93,6 @@ const updateCartItemQuantity = async (customerId, productId, quantity) => {
         .increment("quantity", cartItem.quantity); // Thêm lại số lượng cũ vào kho
 
       return await getCartItems(customerId);
-    } else if (newQuantity > sku.stock_quantity + cartItem.quantity) {
-      throw new Error("Not enough stock");
     }
 
     // Tính toán số lượng thay đổi
